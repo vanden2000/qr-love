@@ -1,69 +1,83 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Container } from "@/components/ui/container";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="min-h-screen flex flex-col justify-between py-8">
+      {/* Navigation */}
+      <header className="w-full">
+        <Container size="sm" className="flex justify-between items-center py-4">
+          <span className="text-base font-medium tracking-wider text-rose-400">
+            QR Love
+          </span>
+          <Link
+            href="/gift/demo"
+            className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+            Xem mẫu demo
+          </Link>
+        </Container>
+      </header>
+
+      {/* Hero Section */}
+      <main className="my-auto py-12">
+        <Container size="sm" className="flex flex-col items-center text-center space-y-8">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-rose-300">
+            <span>✨</span>
+            <span>Món quà số tinh tế & lãng mạn</span>
+          </div>
+
+          <div className="space-y-4">
+            <h1 className="text-3xl sm:text-4xl font-light tracking-tight text-zinc-100 leading-tight">
+              Trao gửi yêu thương <br />
+              <span className="font-normal text-rose-400">chỉ bằng một mã QR</span>
+            </h1>
+            <p className="text-sm text-zinc-400 leading-relaxed max-w-xs mx-auto">
+              Tạo trang kỷ niệm và lời nhắn ngọt ngào dành riêng cho người ấy. Quét mã để mở ra không gian yêu thương bất ngờ.
+            </p>
+          </div>
+
+          <div className="flex flex-col w-full gap-3 pt-4">
+            <Link
+              href="/create"
+              className="w-full inline-flex items-center justify-center min-h-[44px] px-6 py-3.5 rounded-full text-sm font-medium tracking-wide bg-rose-600 text-white hover:bg-rose-700 transition-colors active:scale-[0.98]"
+            >
+              Bắt đầu tạo quà
+            </Link>
+            <Link
+              href="/gift/demo"
+              className="w-full inline-flex items-center justify-center min-h-[44px] px-6 py-3.5 rounded-full text-sm font-medium tracking-wide border border-zinc-800 text-zinc-300 hover:bg-zinc-900 transition-colors"
+            >
+              Trải nghiệm mẫu quà
+            </Link>
+          </div>
+
+          {/* Simple 3-step feature highlight */}
+          <div className="w-full pt-10 border-t border-zinc-900 grid grid-cols-3 gap-2 text-center text-xs text-zinc-400">
+            <div className="space-y-1">
+              <span className="block text-zinc-200 font-medium">1. Nhập</span>
+              <span>Lời yêu thương</span>
+            </div>
+            <div className="space-y-1">
+              <span className="block text-zinc-200 font-medium">2. Nhận</span>
+              <span>Mã QR duy nhất</span>
+            </div>
+            <div className="space-y-1">
+              <span className="block text-zinc-200 font-medium">3. Quét</span>
+              <span>Mở quà bất ngờ</span>
+            </div>
+          </div>
+        </Container>
       </main>
+
+      {/* Footer */}
+      <footer className="w-full">
+        <Container size="sm" className="text-center py-4">
+          <p className="text-xs text-zinc-600">
+            © {new Date().getFullYear()} QR Love. Dành cho những khoảnh khắc đáng nhớ.
+          </p>
+        </Container>
+      </footer>
     </div>
   );
 }
