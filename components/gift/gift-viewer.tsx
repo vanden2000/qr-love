@@ -2,11 +2,11 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import type { GiftItem } from "@/types/gift";
+import type { Gift } from "@/types/gift";
 import { formatDate } from "@/lib/utils";
 
 interface GiftViewerProps {
-  gift: GiftItem;
+  gift: Gift;
 }
 
 export function GiftViewer({ gift }: GiftViewerProps) {
@@ -20,8 +20,8 @@ export function GiftViewer({ gift }: GiftViewerProps) {
       {/* Header */}
       <header className="w-full max-w-md flex justify-between items-center text-xs tracking-widest text-zinc-500 uppercase z-10">
         <span>QR Love</span>
-        {gift.anniversaryDate && (
-          <span>{formatDate(gift.anniversaryDate)}</span>
+        {gift.start_date && (
+          <span>{formatDate(gift.start_date)}</span>
         )}
       </header>
 
@@ -38,7 +38,7 @@ export function GiftViewer({ gift }: GiftViewerProps) {
                 Món quà dành riêng cho
               </p>
               <h1 className="text-2xl sm:text-3xl font-light text-zinc-100 tracking-tight">
-                {gift.recipientName}
+                {gift.receiver_name}
               </h1>
             </div>
 
@@ -59,14 +59,14 @@ export function GiftViewer({ gift }: GiftViewerProps) {
             </div>
           </div>
         ) : (
-          /* Opened Gift State (Demo preview skeleton) */
+          /* Opened Gift State */
           <div className="space-y-6 w-full text-left bg-zinc-900/40 p-6 rounded-2xl border border-zinc-800/60 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-500">
             <div className="border-b border-zinc-800/80 pb-4">
               <span className="text-xs text-rose-400 font-medium tracking-wider uppercase">
                 {gift.title}
               </span>
               <h2 className="text-xl font-light text-zinc-100 mt-1">
-                Gửi {gift.recipientName},
+                Gửi {gift.receiver_name},
               </h2>
             </div>
 
@@ -77,7 +77,7 @@ export function GiftViewer({ gift }: GiftViewerProps) {
             <div className="pt-4 border-t border-zinc-800/80 flex justify-between items-center text-xs text-zinc-500">
               <span>Thương gửi,</span>
               <span className="font-medium text-zinc-300">
-                {gift.senderName}
+                {gift.sender_name}
               </span>
             </div>
 

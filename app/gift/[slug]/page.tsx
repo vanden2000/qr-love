@@ -1,5 +1,6 @@
-import { GiftViewer } from "@/components/gift/gift-viewer";
-import { DEFAULT_DEMO_GIFT } from "@/lib/constants";
+import { notFound } from "next/navigation";
+import { GiftExperience } from "@/components/gift/gift-experience";
+import { getGiftBySlug } from "@/lib/gifts/getGift";
 
 interface GiftPageProps {
   params: Promise<{
@@ -8,21 +9,29 @@ interface GiftPageProps {
 }
 
 export async function generateMetadata({ params }: GiftPageProps) {
-  await params;
+  const { slug } = await params;
+  const gift = await getGiftBySlug(slug);
+
+  if (!gift) {
+    return {
+      title: "Không tìm thấy món quà | QR Love",
+      description: "Món quà này không tồn tại hoặc đã bị xóa.",
+    };
+  }
+
   return {
-    title: "Món quà kỷ niệm | QR Love",
-    description: "Món quà đặc biệt dành riêng cho bạn.",
+    title: `${gift.title} | QR Love`,
+    description: `Món quà đặc biệt dành riêng cho ${gift.receiver_name}.`,
   };
 }
 
 export default async function GiftPage({ params }: GiftPageProps) {
   const { slug } = await params;
+  const gift = await getGiftBySlug(slug);
 
-  // Bước skeleton: Hiển thị demo gift theo slug
-  const gift = {
-    ...DEFAULT_DEMO_GIFT,
-    slug,
-  };
+  if (!gift) {
+    notFound();
+  }
 
-  return <GiftViewer gift={gift} />;
+  return <GiftExperience gift={gift} />;
 }

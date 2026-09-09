@@ -1,21 +1,80 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useTransition, useRef } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import type { GiftFormData } from "@/types/gift";
+import { createGiftAction } from "@/app/actions/gift";
+import {
+  optimizeImageFile,
+  IMAGE_OPTIMIZATION_CONFIG,
+} from "@/lib/media/optimizeImage";
+
+interface SelectedImage {
+  file: File;
+  previewUrl: string;
+}
+
+const MAX_IMAGES = 5;
+const MAX_STORY_MESSAGES = 10;
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // Allow up to 10MB input before client compression
+const MAX_AUDIO_SIZE_BYTES = 15 * 1024 * 1024; // 15MB
+
+export const SUGGESTED_STORY_MESSAGES = [
+  "Cảm ơn em vì đã xuất hiện và làm thế giới của anh dịu dàng hơn",
+  "Mỗi khoảnh khắc ở cạnh em đều là điều bình yên nhất",
+  "Nụ cười của em là ánh sáng xua tan mọi mỏi mệt trong anh",
+  "Dù đi qua bao mùa đổi thay, anh vẫn chỉ chọn nắm tay em",
+  "Có em bên cạnh, mọi chặng đường phía trước đều hóa ngọt ngào",
+  "Tình yêu của chúng ta không cần ồn ào, chỉ cần chân thành và dài lâu",
+  "Cảm ơn em đã luôn lắng nghe, thấu hiểu và tin tưởng anh",
+  "Mong cho sau này, mỗi sớm mai thức dậy đều nhìn thấy nụ cười của em",
+  "Hãy để anh được chăm sóc và yêu thương em nhiều hơn mỗi ngày",
+  "Hành trình này đẹp nhất là bởi vì có em cùng đồng hành",
+];
 
 export function CreateGiftForm() {
-  const [formData, setFormData] = useState<GiftFormData>({
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [isOptimizingImages, setIsOptimizingImages] = useState(false);
+
+  const [formData, setFormData] = useState({
     senderName: "",
-    recipientName: "",
-    anniversaryDate: "",
+    receiverName: "",
+    startDate: "",
     title: "",
     message: "",
   });
 
-  const [submitted, setSubmitted] = useState(false);
+  const [storyMessages, setStoryMessages] = useState<string[]>([
+    "Cảm ơn em vì đã xuất hiện và làm thế giới của anh dịu dàng hơn",
+    "Mỗi khoảnh khắc ở cạnh em đều là điều bình yên nhất",
+    "Mong mình sẽ còn bên nhau thật lâu",
+  ]);
+
+  const [images, setImages] = useState<SelectedImage[]>([]);
+  const [audio, setAudio] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+
+  // Clean up object URLs on component unmount to prevent memory leaks
+  const imagesRef = useRef(images);
+
+  React.useEffect(() => {
+    imagesRef.current = images;
+  }, [images]);
+
+  React.useEffect(() => {
+    return () => {
+      imagesRef.current.forEach((img) => {
+        URL.revokeObjectURL(img.previewUrl);
+      });
+    };
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -25,12 +84,234 @@ export function CreateGiftForm() {
       ...prev,
       [name]: value,
     }));
+    if (error) setError(null);
+  };
+
+  // Story Messages Handlers
+  const handleStoryMessageChange = (index: number, value: string) => {
+    setStoryMessages((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+    if (error) setError(null);
+  };
+
+  const handleAddStoryMessage = () => {
+    if (storyMessages.length >= MAX_STORY_MESSAGES) return;
+    const nextSuggestion =
+      SUGGESTED_STORY_MESSAGES[storyMessages.length % SUGGESTED_STORY_MESSAGES.length] || "";
+    setStoryMessages((prev) => [...prev, nextSuggestion]);
+  };
+
+  const handleApplyAllSuggestions = () => {
+    setStoryMessages([...SUGGESTED_STORY_MESSAGES]);
+  };
+
+  const handleRemoveStoryMessage = (index: number) => {
+    if (storyMessages.length <= 1) return;
+    setStoryMessages((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleMoveStoryMessage = (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= storyMessages.length) return;
+
+    setStoryMessages((prev) => {
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[targetIndex];
+      next[targetIndex] = temp;
+      return next;
+    });
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setError(null);
+
+    const files = Array.from(e.target.files);
+    const availableSlots = MAX_IMAGES - images.length;
+
+    if (files.length > availableSlots) {
+      setError(`Chỉ có thể thêm tối đa ${MAX_IMAGES} hình ảnh.`);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+      return;
+    }
+
+    setIsOptimizingImages(true);
+    const validNewImages: SelectedImage[] = [];
+    const optimizationErrors: string[] = [];
+
+    for (const file of files) {
+      if (file.size > MAX_IMAGE_SIZE_BYTES) {
+        optimizationErrors.push(`Ảnh "${file.name}" vượt quá 10MB.`);
+        continue;
+      }
+
+      const isAllowed =
+        (IMAGE_OPTIMIZATION_CONFIG.ALLOWED_INPUT_TYPES as readonly string[]).includes(
+          file.type
+        ) || /\.(jpe?g|png|webp)$/i.test(file.name);
+
+      if (!isAllowed) {
+        optimizationErrors.push(
+          `Ảnh "${file.name}" không hợp lệ. Chỉ chấp nhận JPG, PNG, WEBP.`
+        );
+        continue;
+      }
+
+      try {
+        const optimizedFile = await optimizeImageFile(file);
+        validNewImages.push({
+          file: optimizedFile,
+          previewUrl: URL.createObjectURL(optimizedFile),
+        });
+      } catch (err) {
+        console.warn(`Lỗi tối ưu ảnh ${file.name}:`, err);
+        optimizationErrors.push(
+          `Không thể tối ưu ảnh "${file.name}". Vui lòng thử ảnh khác.`
+        );
+      }
+    }
+
+    if (optimizationErrors.length > 0) {
+      setError(optimizationErrors.join(" "));
+    }
+
+    if (validNewImages.length > 0) {
+      setImages((prev) => [...prev, ...validNewImages]);
+    }
+
+    setIsOptimizingImages(false);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setImages((prev) => {
+      const target = prev[indexToRemove];
+      if (target) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return prev.filter((_, idx) => idx !== indexToRemove);
+    });
+  };
+
+  const handleAudioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setError(null);
+
+    const file = e.target.files[0];
+
+    if (file.size > MAX_AUDIO_SIZE_BYTES) {
+      setError(`File nhạc "${file.name}" vượt quá 15MB.`);
+      return;
+    }
+
+    const isMp3 =
+      file.type === "audio/mpeg" ||
+      file.type === "audio/mp3" ||
+      /\.mp3$/i.test(file.name);
+
+    if (!isMp3) {
+      setError(`File nhạc "${file.name}" không hợp lệ. Chỉ chấp nhận định dạng MP3.`);
+      return;
+    }
+
+    setAudio(file);
+    if (audioInputRef.current) {
+      audioInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveAudio = () => {
+    setAudio(null);
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Giao diện skeleton: chỉ demo trạng thái phản hồi, chưa có database/submit thật
-    setSubmitted(true);
+    setError(null);
+
+    // Client-side length checks
+    if (formData.senderName.trim().length > 100) {
+      setError("Tên người gửi không được vượt quá 100 ký tự.");
+      return;
+    }
+    if (formData.receiverName.trim().length > 100) {
+      setError("Tên người nhận không được vượt quá 100 ký tự.");
+      return;
+    }
+    if (formData.title.trim().length > 200) {
+      setError("Tiêu đề không được vượt quá 200 ký tự.");
+      return;
+    }
+    if (formData.message.trim().length > 3000) {
+      setError("Lời nhắn không được vượt quá 3000 ký tự.");
+      return;
+    }
+
+    const cleanedStoryMessages = storyMessages
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    for (let i = 0; i < cleanedStoryMessages.length; i++) {
+      if (cleanedStoryMessages[i].length > 160) {
+        setError(`Lời nhắn số ${i + 1} vượt quá 160 ký tự.`);
+        return;
+      }
+    }
+
+    startTransition(async () => {
+      try {
+        const dataPayload = new FormData();
+        dataPayload.append("senderName", formData.senderName.trim());
+        dataPayload.append("receiverName", formData.receiverName.trim());
+        dataPayload.append("title", formData.title.trim());
+        dataPayload.append("message", formData.message.trim());
+        if (formData.startDate) {
+          dataPayload.append("startDate", formData.startDate);
+        }
+
+        // Append story messages
+        for (const msg of cleanedStoryMessages) {
+          dataPayload.append("storyMessages", msg);
+        }
+
+        // Append images
+        for (const img of images) {
+          dataPayload.append("images", img.file);
+        }
+
+        // Append audio
+        if (audio) {
+          dataPayload.append("audio", audio);
+        }
+
+        const response = await createGiftAction(dataPayload);
+
+        if (!response.success || !response.data) {
+          setError(response.error || "Không thể tạo món quà. Vui lòng thử lại.");
+          return;
+        }
+
+        // Clean up object URLs
+        for (const img of images) {
+          URL.revokeObjectURL(img.previewUrl);
+        }
+
+        // Redirect to /create/success/[slug]
+        router.push(`/create/success/${response.data.slug}`);
+      } catch (err) {
+        console.error("Form submit error:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Đã xảy ra lỗi khi tạo món quà. Vui lòng thử lại sau."
+        );
+      }
+    });
   };
 
   return (
@@ -41,28 +322,33 @@ export function CreateGiftForm() {
           id="senderName"
           name="senderName"
           placeholder="Ví dụ: Hoàng Long"
+          maxLength={100}
           value={formData.senderName}
           onChange={handleChange}
           required
+          disabled={isPending}
         />
 
         <Input
           label="Tên người nhận"
           id="recipientName"
-          name="recipientName"
+          name="receiverName"
           placeholder="Ví dụ: Thu Hà"
-          value={formData.recipientName}
+          maxLength={100}
+          value={formData.receiverName}
           onChange={handleChange}
           required
+          disabled={isPending}
         />
 
         <Input
           label="Ngày kỷ niệm"
-          id="anniversaryDate"
-          name="anniversaryDate"
+          id="startDate"
+          name="startDate"
           type="date"
-          value={formData.anniversaryDate}
+          value={formData.startDate}
           onChange={handleChange}
+          disabled={isPending}
         />
 
         <Input
@@ -70,32 +356,267 @@ export function CreateGiftForm() {
           id="title"
           name="title"
           placeholder="Ví dụ: Gửi người con gái anh yêu"
+          maxLength={200}
           value={formData.title}
           onChange={handleChange}
           required
+          disabled={isPending}
         />
 
+        {/* Section: Lời nhắn trong không gian (Story Messages) */}
+        <div className="space-y-3 pt-2">
+          <div className="flex justify-between items-center flex-wrap gap-1">
+            <label className="text-xs font-medium uppercase tracking-wider text-rose-300/90 flex items-center gap-1.5">
+              <span>✨ Lời nhắn trôi trong không gian ({storyMessages.length}/{MAX_STORY_MESSAGES})</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleApplyAllSuggestions}
+                disabled={isPending}
+                className="px-2.5 py-1 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 hover:border-rose-400 text-[11px] text-rose-300 hover:text-rose-200 font-medium transition-all shadow-sm active:scale-95 flex items-center gap-1 cursor-pointer"
+                title="Tự động điền 10 câu mẫu lãng mạn"
+              >
+                <span>✨</span>
+                <span>Điền nhanh 10 câu mẫu</span>
+              </button>
+              <span className="text-[11px] text-zinc-500 hidden sm:inline">• 1–160 ký tự</span>
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            {storyMessages.map((msg, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-2 p-2 rounded-xl bg-zinc-900/70 border border-zinc-800"
+              >
+                <span className="w-5 text-center text-xs font-serif text-rose-400/80 select-none">
+                  {idx + 1}
+                </span>
+
+                <input
+                  type="text"
+                  value={msg}
+                  maxLength={160}
+                  placeholder={`Lời nhắn ${idx + 1}...`}
+                  onChange={(e) => handleStoryMessageChange(idx, e.target.value)}
+                  disabled={isPending}
+                  className="flex-1 bg-transparent text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
+                />
+
+                <div className="flex items-center gap-1">
+                  {idx > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleMoveStoryMessage(idx, "up")}
+                      disabled={isPending}
+                      className="p-1 rounded text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 text-xs"
+                      title="Chuyển lên"
+                    >
+                      ▲
+                    </button>
+                  )}
+                  {idx < storyMessages.length - 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleMoveStoryMessage(idx, "down")}
+                      disabled={isPending}
+                      className="p-1 rounded text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 text-xs"
+                      title="Chuyển xuống"
+                    >
+                      ▼
+                    </button>
+                  )}
+                  {storyMessages.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveStoryMessage(idx)}
+                      disabled={isPending}
+                      className="p-1 rounded text-zinc-500 hover:text-rose-400 hover:bg-zinc-800 text-xs"
+                      title="Xóa lời nhắn"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            <div className="flex gap-2 pt-1">
+              {storyMessages.length < MAX_STORY_MESSAGES && (
+                <button
+                  type="button"
+                  onClick={handleAddStoryMessage}
+                  disabled={isPending}
+                  className="flex-1 py-2.5 px-3 rounded-xl border border-dashed border-zinc-800 hover:border-rose-500/50 bg-zinc-900/30 hover:bg-zinc-900/60 text-xs text-rose-300/80 hover:text-rose-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>+</span>
+                  <span>Thêm lời nhắn ({storyMessages.length}/{MAX_STORY_MESSAGES})</span>
+                </button>
+              )}
+              {storyMessages.length < MAX_STORY_MESSAGES && (
+                <button
+                  type="button"
+                  onClick={handleApplyAllSuggestions}
+                  disabled={isPending}
+                  className="py-2.5 px-3 rounded-xl border border-rose-500/30 hover:border-rose-500/60 bg-rose-950/30 hover:bg-rose-950/60 text-xs text-rose-300 hover:text-rose-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer font-medium"
+                >
+                  <span>✨</span>
+                  <span>Điền đủ 10 câu mẫu</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         <Textarea
-          label="Lời nhắn"
+          label="Bức thư trọn vẹn (Dành cho trang Đọc Thư)"
           id="message"
           name="message"
           placeholder="Viết những lời chân thành nhất gửi đến người ấy..."
           rows={5}
+          maxLength={3000}
           value={formData.message}
           onChange={handleChange}
           required
+          disabled={isPending}
         />
+
+        {/* Media Upload: Images */}
+        <div className="space-y-2 pt-2">
+          <div className="flex justify-between items-center">
+            <label className="text-xs font-medium uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+              <span>Hình ảnh kỷ niệm ({images.length}/{MAX_IMAGES})</span>
+              {isOptimizingImages && (
+                <span className="text-[11px] font-normal text-rose-400 animate-pulse lowercase">
+                  (Đang tối ưu ảnh...)
+                </span>
+              )}
+            </label>
+            <span className="text-[11px] text-zinc-500">Tối đa 10MB/ảnh gốc</span>
+          </div>
+
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
+            {images.map((img, idx) => (
+              <div
+                key={idx}
+                className="relative aspect-square rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 group"
+              >
+                <Image
+                  src={img.previewUrl}
+                  alt={`Ảnh kỷ niệm ${idx + 1}`}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveImage(idx)}
+                  disabled={isPending || isOptimizingImages}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/75 text-white flex items-center justify-center text-xs hover:bg-rose-600 transition-colors"
+                  title="Xóa ảnh"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+
+            {images.length < MAX_IMAGES && (
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={isPending || isOptimizingImages}
+                className="aspect-square rounded-xl border border-dashed border-zinc-700 hover:border-rose-500/60 bg-zinc-900/40 hover:bg-zinc-900/80 flex flex-col items-center justify-center gap-1 text-zinc-400 hover:text-rose-400 transition-colors disabled:opacity-50"
+              >
+                <span className="text-lg">{isOptimizingImages ? "⏳" : "📷"}</span>
+                <span className="text-[10px] font-medium">
+                  {isOptimizingImages ? "Đang xử lý..." : "+ Thêm ảnh"}
+                </span>
+              </button>
+            )}
+          </div>
+
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            className="hidden"
+            onChange={handleImageSelect}
+            disabled={isPending || isOptimizingImages}
+          />
+        </div>
+
+        {/* Media Upload: Audio */}
+        <div className="space-y-2 pt-2">
+          <div className="flex justify-between items-center">
+            <label className="text-xs font-medium uppercase tracking-wider text-zinc-400">
+              Nhạc nền kỷ niệm (Tối đa 1 file MP3)
+            </label>
+            <span className="text-[11px] text-zinc-500">Tối đa 15MB</span>
+          </div>
+
+          {audio ? (
+            <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/80 border border-zinc-800">
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                <span className="text-rose-400 text-base">🎵</span>
+                <div className="truncate text-xs text-zinc-200">
+                  <p className="truncate font-medium">{audio.name}</p>
+                  <p className="text-[10px] text-zinc-500">
+                    {(audio.size / (1024 * 1024)).toFixed(2)} MB
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleRemoveAudio}
+                disabled={isPending || isOptimizingImages}
+                className="ml-2 px-2 py-1 rounded-md text-xs text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 transition-colors"
+              >
+                Gỡ bỏ
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => audioInputRef.current?.click()}
+              disabled={isPending || isOptimizingImages}
+              className="w-full py-3.5 px-4 rounded-xl border border-dashed border-zinc-700 hover:border-rose-500/60 bg-zinc-900/40 hover:bg-zinc-900/80 flex items-center justify-center gap-2 text-xs text-zinc-400 hover:text-rose-400 transition-colors disabled:opacity-50"
+            >
+              <span>🎵</span>
+              <span>Chọn file nhạc MP3</span>
+            </button>
+          )}
+
+          <input
+            ref={audioInputRef}
+            type="file"
+            accept="audio/mpeg,audio/mp3,.mp3"
+            className="hidden"
+            onChange={handleAudioSelect}
+            disabled={isPending || isOptimizingImages}
+          />
+        </div>
       </div>
 
-      {submitted && (
-        <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/40 text-rose-200 text-xs text-center leading-relaxed">
-          ✨ Giao diện demo đã ghi nhận thông tin. Tính năng tạo mã QR thật sẽ được kết nối ở các bước tiếp theo.
+      {error && (
+        <div className="p-3.5 rounded-xl bg-rose-950/60 border border-rose-800/60 text-rose-300 text-xs text-center leading-relaxed">
+          {error}
         </div>
       )}
 
       <div className="pt-2">
-        <Button type="submit" variant="primary" fullWidth>
-          Tạo món quà
+        <Button
+          type="submit"
+          variant="primary"
+          fullWidth
+          disabled={isPending || isOptimizingImages}
+        >
+          {isOptimizingImages
+            ? "Đang tối ưu ảnh..."
+            : isPending
+            ? "Đang tải lên & tạo món quà..."
+            : "Tạo món quà"}
         </Button>
       </div>
     </form>
