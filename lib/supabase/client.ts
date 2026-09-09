@@ -1,9 +1,13 @@
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const publishableKey =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  "";
+export function createClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const publishableKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    "";
 
-export const supabase = createClient(supabaseUrl, publishableKey);
+  return createBrowserClient(supabaseUrl, publishableKey);
+}
+
+export const supabase = createClient();

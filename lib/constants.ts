@@ -14,6 +14,7 @@ export const DEFAULT_DEMO_GIFT: Gift = {
     "Cảm ơn vì đã luôn ở bên cạnh và mang lại nụ cười rạng rỡ mỗi ngày. Yêu em rất nhiều!",
   start_date: "2024-02-14",
   theme: "romantic-dark",
+  status: "active",
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };

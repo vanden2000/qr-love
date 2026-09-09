@@ -1,4 +1,14 @@
 export type MediaType = "image" | "audio";
+export type GiftStatus = "active" | "draft" | "hidden";
+export type UserRole = "admin" | "user";
+
+export interface UserProfile {
+  id: string;
+  email: string | null;
+  role: UserRole;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface Gift {
   id: string;
@@ -9,6 +19,7 @@ export interface Gift {
   message: string;
   start_date: string | null;
   theme: string | null;
+  status: GiftStatus;
   created_at: string;
   updated_at: string;
 }

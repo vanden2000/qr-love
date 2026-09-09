@@ -42,7 +42,8 @@ function deriveStoryMessagesFromText(rawText: string): GiftMessage[] {
  * Returns null if the gift does not exist.
  */
 export async function getGiftBySlug(
-  slug: string
+  slug: string,
+  options?: { allowAnyStatus?: boolean }
 ): Promise<GiftWithMedia | null> {
   if (!slug || typeof slug !== "string") {
     return null;
@@ -52,7 +53,7 @@ export async function getGiftBySlug(
     const supabase = createAdminClient();
     const { data: giftData, error: giftError } = await supabase
       .from("gifts")
-      .select("id, slug, sender_name, receiver_name, title, message, start_date, created_at")
+      .select("id, slug, sender_name, receiver_name, title, message, start_date, status, created_at")
       .eq("slug", slug.trim())
       .maybeSingle();
 
@@ -62,6 +63,11 @@ export async function getGiftBySlug(
     }
 
     if (!giftData) {
+      return null;
+    }
+
+    // Public view: ONLY render if status is active (draft & hidden return null -> 404)
+    if (!options?.allowAnyStatus && giftData.status !== "active") {
       return null;
     }
 

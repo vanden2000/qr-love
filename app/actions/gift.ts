@@ -3,7 +3,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateSlug } from "@/lib/gifts/generateSlug";
 import { checkRateLimit, getClientIp } from "@/lib/security/rateLimit";
-import type { ActionResponse } from "@/types/gift";
+import { requireAdmin } from "@/lib/auth/require-admin";
+import type { ActionResponse, GiftStatus } from "@/types/gift";
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_AUDIO_SIZE = 15 * 1024 * 1024; // 15MB
@@ -25,9 +26,12 @@ export async function createGiftAction(
   const uploadedStorageFiles: Array<{ bucket: string; path: string }> = [];
 
   try {
-    // 1. Rate Limiting: Max 5 gifts / 1 hour per IP
+    // 0. Enforce Server-side Admin Authorization
+    await requireAdmin(false);
+
+    // 1. Rate Limiting: Max 20 gifts / 1 hour per IP for admin
     const clientIp = await getClientIp();
-    const rateLimitResult = await checkRateLimit(`create_gift:${clientIp}`, 5, 3600);
+    const rateLimitResult = await checkRateLimit(`create_gift:${clientIp}`, 20, 3600);
     if (!rateLimitResult.allowed) {
       return {
         success: false,
@@ -162,6 +166,11 @@ export async function createGiftAction(
     let attempts = 0;
     const maxAttempts = 3;
 
+    const statusInput = ((formData.get("status") as string) || "draft").toLowerCase();
+    const giftStatus: GiftStatus = ["active", "draft", "hidden"].includes(statusInput)
+      ? (statusInput as GiftStatus)
+      : "draft";
+
     while (attempts < maxAttempts) {
       const { data, error } = await supabase
         .from("gifts")
@@ -172,6 +181,7 @@ export async function createGiftAction(
           title,
           message,
           start_date: startDate || null,
+          status: giftStatus,
         })
         .select("id, slug")
         .single();

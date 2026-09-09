@@ -1,13 +1,18 @@
 import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { CreateGiftForm } from "@/components/create/create-gift-form";
+import { requireAdmin } from "@/lib/auth/require-admin";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Tạo món quà | QR Love",
   description: "Thiết kế món quà số và lời nhắn ngọt ngào cho người bạn yêu thương.",
 };
 
-export default function CreateGiftPage() {
+export default async function CreateGiftPage() {
+  await requireAdmin(true);
+
   return (
     <div className="min-h-screen py-8 flex flex-col">
       <header className="w-full pb-6">
