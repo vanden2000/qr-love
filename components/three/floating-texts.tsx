@@ -47,32 +47,22 @@ export function FloatingTexts({ gift, timelineTime }: FloatingTextsProps) {
       }
     }
 
-    // 2. Cleanly split gift message into emotional poetic beats for Desktop 3D
-    const rawSentences = gift.message
-      .split(/[.\n;!?]+/)
-      .map((s) => s.trim())
-      .filter((s) => s.length >= 4);
+    // 2. Extract user-defined story messages (up to 10) or derive from message
+    const storyList =
+      gift.story_messages && gift.story_messages.length > 0
+        ? gift.story_messages.map((m) => m.content.trim()).filter(Boolean)
+        : gift.message
+            .split(/[.\n;!?]+/)
+            .map((s) => s.trim())
+            .filter((s) => s.length >= 3);
 
-    let confessionBeats: string[] = [];
-
-    if (rawSentences.length >= 2) {
-      confessionBeats = rawSentences.slice(0, 3).map((s) =>
-        s.length > 70 ? s.slice(0, 68) + "..." : s
-      );
-    } else if (rawSentences.length === 1 && rawSentences[0].length > 40) {
-      const s = rawSentences[0];
-      const mid = Math.floor(s.length / 2);
-      const spaceIdx = s.indexOf(" ", mid - 10);
-      const splitAt = spaceIdx !== -1 ? spaceIdx : mid;
-      confessionBeats = [s.slice(0, splitAt).trim(), s.slice(splitAt).trim()];
-    } else {
-      confessionBeats = [
-        gift.message.length > 5
-          ? gift.message
-          : "Cảm ơn em vì đã đến và sưởi ấm trái tim anh",
-        "Mỗi khoảnh khắc có em đều là điều quý giá nhất",
-      ];
-    }
+    const userMessages =
+      storyList.length > 0
+        ? storyList.slice(0, 10)
+        : [
+            "Cảm ơn em vì đã xuất hiện và làm thế giới dịu dàng hơn",
+            "Mỗi khoảnh khắc ở cạnh em đều là điều bình yên nhất",
+          ];
 
     // 3. Assemble curated text moments across 5 chapters
     const items: TimedTextItem[] = [
@@ -81,7 +71,7 @@ export function FloatingTexts({ gift, timelineTime }: FloatingTextsProps) {
       // ==========================================
       {
         id: "awaken-intro-hint",
-        text: "Có một điều dành riêng cho em...",
+        text: "MỘT MÓN QUÀ DÀNH RIÊNG CHO EM",
         baseX: 0,
         baseY: 0.75,
         baseZ: 6.5,
@@ -143,228 +133,64 @@ export function FloatingTexts({ gift, timelineTime }: FloatingTextsProps) {
         endWindow: 18.5,
         baseMaxWidth: 4.0,
       },
-      {
-        id: "portal-amb-left",
-        text: "Món quà từ trái tim",
-        baseX: -1.5,
-        baseY: 0.55,
-        baseZ: 2.2,
-        baseFontSize: 0.22,
-        color: "#fecdd3",
-        baseOpacity: 0.8,
-        tier: "ambient",
-        isBillboard: true,
-        startWindow: 9.0,
-        endWindow: 16.5,
-      },
-      {
-        id: "portal-amb-right",
-        text: "with endless love ♡",
-        baseX: 1.5,
-        baseY: -0.5,
-        baseZ: 1.6,
-        baseFontSize: 0.22,
-        color: "#fb7185",
-        baseOpacity: 0.85,
-        tier: "ambient",
-        isBillboard: true,
-        startWindow: 11.0,
-        endWindow: 18.0,
-      },
+    ];
 
-      // ==========================================
-      // CHAPTER 3: MEMORIES (18-38s) - Z: 2.5 -> -12.5
-      // ==========================================
-      // Paired with Photo 1 (18-26s)
-      {
-        id: "mem-title-1",
-        text: "Happy Anniversary",
-        baseX: 1.4,
-        baseY: 0.5,
-        baseZ: -2.5,
-        baseFontSize: 0.32,
-        color: "#ffffff",
-        baseOpacity: 0.98,
-        tier: "medium",
-        isBillboard: true,
-        startWindow: 17.5,
-        endWindow: 26.5,
-      },
-      {
-        id: "mem-verse-1",
-        text: "Nụ cười của em là ánh sáng",
-        baseX: -1.4,
-        baseY: -0.52,
-        baseZ: -4.8,
-        baseFontSize: 0.24,
-        color: "#fecdd3",
-        baseOpacity: 0.85,
-        tier: "ambient",
-        isBillboard: true,
-        startWindow: 19.5,
-        endWindow: 28.0,
-      },
+    // ===================================================
+    // CHAPTER 3 & 4: ALL USER STORY MESSAGES (12s - 49s)
+    // Z trajectory moves from Z: 0.0 down to Z: -20.0
+    // ===================================================
+    const msgStartTimeline = 12.0;
+    const msgEndTimeline = 48.5;
+    const totalMsgDuration = msgEndTimeline - msgStartTimeline;
+    const msgDuration = totalMsgDuration / userMessages.length;
 
-      // Paired with Photo 2 (22-30s)
-      {
-        id: "mem-title-2",
-        text: "Trọn vẹn từng phút giây",
-        baseX: -1.4,
-        baseY: 0.46,
-        baseZ: -7.2,
-        baseFontSize: 0.32,
-        color: "#fda4af",
-        baseOpacity: 0.98,
-        tier: "medium",
-        isBillboard: true,
-        startWindow: 22.0,
-        endWindow: 31.0,
-      },
-      {
-        id: "mem-verse-2",
-        text: "bình yên từng khoảnh khắc",
-        baseX: 1.4,
-        baseY: -0.5,
-        baseZ: -9.5,
-        baseFontSize: 0.22,
-        color: "#ffe4e6",
-        baseOpacity: 0.85,
-        tier: "ambient",
-        isBillboard: true,
-        startWindow: 24.0,
-        endWindow: 32.5,
-      },
+    const zStart = 0.5;
+    const zEnd = -20.5;
 
-      // Paired with Photo 3 & 4 (26-36s)
-      {
-        id: "mem-title-3",
-        text: "Cùng nhau đi qua năm tháng",
-        baseX: 1.3,
-        baseY: 0.45,
-        baseZ: -12.2,
-        baseFontSize: 0.32,
-        color: "#ffffff",
-        baseOpacity: 0.98,
-        tier: "medium",
-        isBillboard: true,
-        startWindow: 27.0,
-        endWindow: 36.5,
-      },
-      {
-        id: "mem-verse-3",
-        text: "My only one ♡",
-        baseX: -1.4,
-        baseY: -0.48,
-        baseZ: -14.2,
-        baseFontSize: 0.26,
-        color: "#fb7185",
-        baseOpacity: 0.9,
-        tier: "medium",
-        isBillboard: true,
-        startWindow: 29.5,
-        endWindow: 38.0,
-      },
+    userMessages.forEach((msg, idx) => {
+      const startT = msgStartTimeline + idx * msgDuration;
+      const endT = Math.min(50.0, startT + msgDuration + 1.2);
 
-      // ==========================================
-      // CHAPTER 4: CONFESSION (38-52s) - Z: -12.5 -> -22.0
-      // ==========================================
-      {
-        id: "confess-beat-1",
-        text: confessionBeats[0],
-        baseX: 0,
-        baseY: 0.24,
-        baseZ: -16.5,
+      const progress = idx / Math.max(1, userMessages.length - 1);
+      const zPos = zStart + progress * (zEnd - zStart);
+
+      // Alternate slightly left/center/right for rich depth
+      const xLane = (idx % 3 === 0 ? 0 : idx % 3 === 1 ? -0.85 : 0.85);
+      const yOffset = idx % 2 === 0 ? 0.32 : -0.28;
+
+      items.push({
+        id: `story-msg-3d-${idx}`,
+        text: msg,
+        baseX: xLane,
+        baseY: yOffset,
+        baseZ: zPos,
         baseFontSize: 0.36,
-        color: "#ffffff",
+        color: idx % 2 === 0 ? "#ffffff" : "#fff1f2",
         baseOpacity: 1.0,
         tier: "primary",
         isBillboard: true,
-        startWindow: 37.5,
-        endWindow: 45.0,
-        baseMaxWidth: 4.2,
-      },
-      ...(confessionBeats[1]
-        ? [
-            {
-              id: "confess-beat-2",
-              text: confessionBeats[1],
-              baseX: 0,
-              baseY: 0.2,
-              baseZ: -19.5,
-              baseFontSize: 0.36,
-              color: "#ffffff",
-              baseOpacity: 1.0,
-              tier: "primary" as const,
-              isBillboard: true,
-              startWindow: 43.0,
-              endWindow: 50.5,
-              baseMaxWidth: 4.2,
-            },
-          ]
-        : []),
-      ...(confessionBeats[2]
-        ? [
-            {
-              id: "confess-beat-3",
-              text: confessionBeats[2],
-              baseX: 0,
-              baseY: 0.18,
-              baseZ: -20.8,
-              baseFontSize: 0.34,
-              color: "#ffffff",
-              baseOpacity: 1.0,
-              tier: "primary" as const,
-              isBillboard: true,
-              startWindow: 46.0,
-              endWindow: 52.0,
-              baseMaxWidth: 4.2,
-            },
-          ]
-        : []),
-      {
-        id: "confess-amb-1",
-        text: "lắng nghe nhịp tim",
-        baseX: -1.4,
-        baseY: -0.52,
-        baseZ: -17.5,
-        baseFontSize: 0.22,
-        color: "#fda4af",
-        baseOpacity: 0.75,
-        tier: "ambient",
-        isBillboard: true,
-        startWindow: 38.0,
-        endWindow: 46.0,
-      },
-      {
-        id: "confess-amb-2",
-        text: "chân thành & duy nhất",
-        baseX: 1.4,
-        baseY: -0.52,
-        baseZ: -20.0,
-        baseFontSize: 0.22,
-        color: "#ffe4e6",
-        baseOpacity: 0.75,
-        tier: "ambient",
-        isBillboard: true,
-        startWindow: 43.5,
-        endWindow: 51.5,
-      },
-      {
-        id: "confess-sender",
-        text: `Thương gửi từ ${gift.sender_name || "người thương"}`,
-        baseX: 0,
-        baseY: -0.32,
-        baseZ: -21.8,
-        baseFontSize: 0.36,
-        color: "#fda4af",
-        baseOpacity: 0.98,
-        tier: "primary",
-        isBillboard: true,
-        startWindow: 46.5,
-        endWindow: 53.5,
-        baseMaxWidth: 4.2,
-      },
-    ];
+        startWindow: startT,
+        endWindow: endT,
+        baseMaxWidth: 4.6,
+      });
+    });
+
+    // Sender Signoff
+    items.push({
+      id: "confess-sender",
+      text: `Thương gửi từ ${gift.sender_name || "người thương"}`,
+      baseX: 0,
+      baseY: -0.32,
+      baseZ: -21.8,
+      baseFontSize: 0.38,
+      color: "#fda4af",
+      baseOpacity: 0.98,
+      tier: "primary",
+      isBillboard: true,
+      startWindow: 48.0,
+      endWindow: 53.5,
+      baseMaxWidth: 4.4,
+    });
 
     return items;
   }, [gift]);

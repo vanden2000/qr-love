@@ -35,7 +35,7 @@ export function MobileStoryStream({
 
     const messages =
       rawList.length > 0
-        ? rawList.slice(0, 8)
+        ? rawList.slice(0, 10)
         : [
             "Cảm ơn vì đã luôn ở bên anh",
             "Mỗi khoảnh khắc có em đều là điều quý giá nhất",
@@ -55,11 +55,11 @@ export function MobileStoryStream({
 
     // --- CHAPTER 2 & 3: USER STORY MESSAGES (8.0s - 48.0s) ---
     const totalMessageTime = 40.0;
-    const beatDuration = Math.max(4.0, totalMessageTime / messages.length);
+    const beatDuration = totalMessageTime / messages.length;
 
     messages.forEach((msg, idx) => {
       const start = 8.0 + idx * beatDuration;
-      const end = Math.min(48.5, start + beatDuration + 0.6);
+      const end = Math.min(48.5, start + beatDuration + 0.4);
       beats.push({
         id: `msg-beat-${idx}`,
         label: messages.length > 1 ? `LỜI NHẮN ${idx + 1}/${messages.length}` : undefined,
