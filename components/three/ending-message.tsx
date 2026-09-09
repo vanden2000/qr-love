@@ -24,8 +24,8 @@ export function EndingMessage({
     return null;
   }
 
-  // Visible during CHAPTER 5: FOREVER (52-65s)
-  const opacity = getFadeOpacity(timelineTime, 51.5, 65.0, 2.5, 0.5);
+  // Visible during CHAPTER 5: FOREVER (51.5s onwards)
+  const opacity = getFadeOpacity(timelineTime, 51.5, 999.0, 2.5, 0.0);
   const isVisible = opacity > 0.001;
 
   if (!isVisible) return null;

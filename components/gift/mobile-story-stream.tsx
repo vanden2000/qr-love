@@ -79,13 +79,13 @@ export function MobileStoryStream({
       endWindow: 53.5,
     });
 
-    // --- CHAPTER 5: ENDING POSTER (53.5s - 65.0s) ---
+    // --- CHAPTER 5: ENDING POSTER (53.5s onwards) ---
     beats.push({
       id: "ending-poster",
       primaryText: `${gift.sender_name || "Người thương"} ♡ ${gift.receiver_name}`,
       subtitle: "“Hành trình của chúng ta • Mãi mãi đong đầy yêu thương”",
       startWindow: 53.5,
-      endWindow: 65.0,
+      endWindow: 999.0,
       isEnding: true,
     });
 
@@ -101,13 +101,13 @@ export function MobileStoryStream({
             timelineTime,
             beat.startWindow,
             beat.endWindow,
-            1.0,
-            0.9
+            1.2,
+            0.0
           );
 
           if (opacity <= 0.001) return null;
 
-          const duration = beat.endWindow - beat.startWindow;
+          const duration = Math.min(20.0, beat.endWindow - beat.startWindow);
           const progress = Math.max(
             0,
             Math.min(1, (timelineTime - beat.startWindow) / duration)
@@ -121,8 +121,8 @@ export function MobileStoryStream({
             const enterP = progress / 0.22;
             translateY = (1 - enterP) * -24;
             scale = 0.97 + enterP * 0.03;
-          } else if (progress > 0.78) {
-            // EXITING to bottom: translateY 0px -> 26px
+          } else if (progress > 0.78 && !beat.isEnding) {
+            // EXITING to bottom (for intermediate beats only): translateY 0px -> 26px
             const exitP = (progress - 0.78) / 0.22;
             translateY = exitP * 26;
             scale = 1.0 + exitP * 0.02;

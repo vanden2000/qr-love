@@ -22,7 +22,6 @@ function createSeededRandom(seed: number) {
 
 export function StardustParticles({
   count = 140,
-  timelineTime = 0,
 }: StardustParticlesProps) {
   const pointsRef = useRef<THREE.Points>(null);
 
@@ -40,13 +39,14 @@ export function StardustParticles({
     return pos;
   }, [count]);
 
-  useFrame(() => {
+  useFrame((state) => {
     if (!pointsRef.current) return;
     const material = pointsRef.current.material as THREE.PointsMaterial;
     if (!material) return;
 
-    // Gentle breathing pulse across timeline
-    const pulse = Math.sin(timelineTime * 0.75) * 0.15 + 0.6;
+    // Gentle breathing pulse across continuous clock
+    const clockTime = state.clock.getElapsedTime();
+    const pulse = Math.sin(clockTime * 0.8) * 0.15 + 0.6;
     material.opacity = pulse;
   });
 

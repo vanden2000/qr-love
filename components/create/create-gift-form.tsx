@@ -305,11 +305,21 @@ export function CreateGiftForm() {
         router.push(`/create/success/${response.data.slug}`);
       } catch (err) {
         console.error("Form submit error:", err);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Đã xảy ra lỗi khi tạo món quà. Vui lòng thử lại sau."
-        );
+        const errMsg = err instanceof Error ? err.message : "";
+        if (
+          errMsg.includes("was not found on the server") ||
+          errMsg.includes("Failed to find Server Action")
+        ) {
+          setError(
+            "Hệ thống vừa được cập nhật phiên bản mới. Vui lòng tải lại trang (F5) để tiếp tục."
+          );
+        } else {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Đã xảy ra lỗi khi tạo món quà. Vui lòng thử lại sau."
+          );
+        }
       }
     });
   };

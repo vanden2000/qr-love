@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 const nextConfig: NextConfig = {
+  deploymentId:
+    process.env.VERCEL_DEPLOYMENT_ID ||
+    process.env.NEXT_DEPLOYMENT_ID ||
+    undefined,
   async headers() {
     return [
       {

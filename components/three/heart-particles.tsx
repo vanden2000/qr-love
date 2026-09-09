@@ -5,7 +5,8 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
 interface HeartData {
-  x: number;
+  sideX: number;
+  centerX: number;
   y: number;
   z: number;
   scale: number;
@@ -28,6 +29,7 @@ const HEART_PALETTE = [
   "#E11D48", // Vibrant rose
   "#F43F5E", // Romantic pink rose
   "#FB7185", // Soft glow rose
+  "#FDA4AF", // Tender rose glow
 ];
 
 function createSeededRandom(seed: number) {
@@ -65,14 +67,14 @@ export function HeartParticles({
   }, []);
 
   // 2. Precompute 3-tier deterministic particles (20% FG, 50% Mid, 30% BG)
-  // Strict Central Safe Corridor: 88% pushed to side edges, 0 top-center clustering
+  // Dynamic transition: Side corridor during text reading -> Full cosmic bloom at ending
   const particles = useMemo<HeartData[]>(() => {
     const rng = createSeededRandom(3042);
     const list: HeartData[] = [];
 
-    const fgCount = Math.floor(count * 0.2); // 20% Foreground
+    const fgCount = Math.floor(count * 0.22); // 22% Foreground
     const bgCount = Math.floor(count * 0.3); // 30% Background
-    const midCount = count - fgCount - bgCount; // 50% Midground
+    const midCount = count - fgCount - bgCount; // 48% Midground
 
     const generateParticle = (tier: "bg" | "mid" | "fg"): HeartData => {
       let z: number;
@@ -82,45 +84,42 @@ export function HeartParticles({
       if (tier === "fg") {
         // Foreground (Z: +1.0 to +7.0)
         z = 1.0 + rng() * 6.0;
-        scale = 0.18 + rng() * 0.06;
-        speed = 0.12 + rng() * 0.25;
+        scale = 0.18 + rng() * 0.07;
+        speed = 0.18 + rng() * 0.28;
       } else if (tier === "bg") {
         // Background (Z: -14.0 to -34.0)
         z = -14.0 - rng() * 20.0;
-        scale = 0.065 + rng() * 0.035;
-        speed = 0.1 + rng() * 0.2;
+        scale = 0.07 + rng() * 0.04;
+        speed = 0.12 + rng() * 0.22;
       } else {
         // Midground (Z: -14.0 to +1.0)
         z = -14.0 + rng() * 15.0;
-        scale = 0.12 + rng() * 0.05;
-        speed = 0.15 + rng() * 0.3;
+        scale = 0.13 + rng() * 0.06;
+        speed = 0.16 + rng() * 0.32;
       }
 
-      // Horizontal: 88% pushed into Left Wing [-6.5, -1.8] and Right Wing [1.8, 6.5]
-      // Only 12% in center channel (and strictly background/tiny)
-      let x: number;
-      const isSide = rng() > 0.12;
-      if (isSide || tier === "fg") {
-        const sideSign = rng() > 0.5 ? 1 : -1;
-        x = sideSign * (1.85 + rng() * 4.6);
-      } else {
-        x = (rng() - 0.5) * 2.6;
-      }
+      // Reading Phase: Pushed to Left/Right Wings
+      const sideSign = rng() > 0.5 ? 1 : -1;
+      const sideX = sideSign * (1.85 + rng() * 4.6);
 
-      // Vertical: Uniformly distributed across Y [-5.5, +5.5] without top bias
+      // Ending Phase: Full Screen natural distribution
+      const centerX = (rng() - 0.5) * 8.5;
+
+      // Vertical distribution across Y [-5.5, +5.5]
       const y = (rng() - 0.5) * 11.0;
 
       const colorHex = HEART_PALETTE[Math.floor(rng() * HEART_PALETTE.length)];
 
       return {
-        x,
+        sideX,
+        centerX,
         y,
         z,
         scale,
         speed,
         phase: rng() * Math.PI * 2,
         tiltSpeed: 0.25 + rng() * 0.5,
-        driftX: 0.08 + rng() * 0.2,
+        driftX: 0.1 + rng() * 0.25,
         colorHex,
         tier,
       };
@@ -148,27 +147,37 @@ export function HeartParticles({
   }, [particles]);
 
   // 4. Update instanced mesh per frame
-  useFrame(() => {
+  // Uses continuous clock for endless organic floating + timeline transition
+  useFrame((state) => {
     if (!meshRef.current) return;
 
-    const time = timelineTime;
-    const speedMultiplier = timelineTime >= 50 ? 0.35 : 1.0;
+    const clockTime = state.clock.getElapsedTime();
+    // Ending transition progress: 0 (during messages) -> 1 (when ending is reached >= 52s)
+    const endingProgress = THREE.MathUtils.smoothstep(timelineTime, 49.0, 58.0);
 
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
 
-      const currentY =
-        p.y + Math.sin(time * p.speed * speedMultiplier + p.phase) * 0.32;
-      const currentX =
-        p.x + Math.cos(time * p.driftX * speedMultiplier + p.phase) * 0.2;
+      // Smoothly interpolate from side corridors to full screen distribution
+      const baseX = THREE.MathUtils.lerp(p.sideX, p.centerX, endingProgress);
+
+      // Continuous gentle floating oscillation
+      const floatY = Math.sin(clockTime * p.speed + p.phase) * 0.45;
+      const floatX = Math.cos(clockTime * p.driftX + p.phase) * 0.3;
+
+      const currentX = baseX + floatX;
+      const currentY = p.y + floatY;
+
+      // Subtle pulse and gentle tilt
+      const pulseScale = p.scale * (1 + Math.sin(clockTime * 1.2 + p.phase) * 0.08);
 
       dummy.position.set(currentX, currentY, p.z);
       dummy.rotation.set(
         0,
         0,
-        Math.sin(time * p.tiltSpeed * speedMultiplier + p.phase) * 0.2
+        Math.sin(clockTime * p.tiltSpeed + p.phase) * 0.25
       );
-      dummy.scale.set(p.scale, p.scale, p.scale);
+      dummy.scale.set(pulseScale, pulseScale, pulseScale);
       dummy.updateMatrix();
 
       meshRef.current.setMatrixAt(i, dummy.matrix);
@@ -182,7 +191,7 @@ export function HeartParticles({
       <meshBasicMaterial
         side={THREE.DoubleSide}
         transparent
-        opacity={0.85}
+        opacity={0.88}
       />
     </instancedMesh>
   );
