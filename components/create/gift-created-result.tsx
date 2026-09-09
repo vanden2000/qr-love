@@ -125,11 +125,17 @@ export function GiftCreatedResult({
 
       {/* 3. QR Hero Card with Multi-layer Glow */}
       <div className="relative group w-full max-w-[280px] sm:max-w-[310px] mx-auto">
-        {/* Outer Aura Glow */}
-        <div className="absolute -inset-2 bg-gradient-to-r from-rose-600/30 via-pink-500/25 to-rose-600/30 rounded-[32px] blur-xl opacity-75 group-hover:opacity-100 transition-opacity duration-500" />
+        {/* Outer Aura Glow with Breathing Animation */}
+        <div className="absolute -inset-2.5 bg-gradient-to-r from-rose-600/35 via-pink-500/30 to-rose-600/35 rounded-[34px] blur-xl opacity-80 group-hover:opacity-100 transition-opacity duration-500 animate-pulse-glow pointer-events-none" />
 
         {/* Hero Card Container */}
-        <div className="relative p-5 sm:p-6 rounded-[28px] bg-gradient-to-b from-[#FFFDFE] to-[#FFF5F7] border border-rose-200/80 shadow-[0_14px_45px_-10px_rgba(225,29,72,0.35)] flex flex-col items-center justify-center">
+        <div className="relative p-5 sm:p-6 rounded-[28px] bg-gradient-to-b from-[#FFFDFE] to-[#FFF5F7] border border-rose-200/90 shadow-[0_16px_50px_-10px_rgba(225,29,72,0.4)] flex flex-col items-center justify-center">
+          {/* Corner Heart Accents */}
+          <span className="absolute top-3 left-3.5 text-rose-300/70 text-xs select-none">♥</span>
+          <span className="absolute top-3 right-3.5 text-rose-300/70 text-xs select-none">♥</span>
+          <span className="absolute bottom-3 left-3.5 text-rose-300/70 text-xs select-none">♥</span>
+          <span className="absolute bottom-3 right-3.5 text-rose-300/70 text-xs select-none">♥</span>
+
           {/* Top Card Label */}
           <div className="flex items-center gap-1.5 mb-3 text-[10px] sm:text-[11px] font-semibold tracking-[0.2em] text-rose-700/85 uppercase">
             <span>♡</span>
