@@ -27,7 +27,7 @@ interface SelectedImage {
   previewUrl: string;
 }
 
-const MAX_IMAGES = 5;
+const MAX_IMAGES = 10;
 const MAX_STORY_MESSAGES = 25;
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // Allow up to 10MB input before client compression
 const MAX_AUDIO_SIZE_BYTES = 15 * 1024 * 1024; // 15MB
@@ -740,7 +740,7 @@ export function CreateGiftForm() {
                 </span>
               )}
             </label>
-            <span className="text-[11px] text-zinc-400">Tối đa 5 ảnh</span>
+            <span className="text-[11px] text-zinc-400">Tối đa 10 ảnh (Không bắt buộc)</span>
           </div>
 
           <input

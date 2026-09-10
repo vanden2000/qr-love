@@ -161,10 +161,10 @@ export function generateLoveStreamSchedule({
     if (!customPhrases.includes(p)) customPhrases.push(p);
   });
 
-  // 4. Extract Memory Photos
+  // 4. Extract Memory Photos (Up to 10 photos)
   const images = (gift.media || [])
     .filter((m) => m.type === "image" && Boolean(m.url))
-    .slice(0, 5);
+    .slice(0, 10);
 
   // 5. Color Tone Palettes (Neon Cyan, Radiant White, Rose, Gold)
   const tones: ("neon-cyan" | "neon-white" | "neon-rose" | "gold-rose")[] = [
@@ -373,19 +373,16 @@ export function generateLoveStreamSchedule({
   }
 
   // =========================================================================
-  // CHAPTER 3: FLOATING MEMORY PHOTOS (Spaced across 120s, Compact for Mobile)
+  // CHAPTER 3: FLOATING MEMORY PHOTOS (Up to 10 Photos, Spaced across 120s)
   // =========================================================================
   if (images.length > 0) {
-    const photoSpans =
-      images.length === 1
-        ? [35.0]
-        : images.length === 2
-        ? [25.0, 75.0]
-        : images.length === 3
-        ? [18.0, 55.0, 92.0]
-        : images.length === 4
-        ? [15.0, 42.0, 70.0, 98.0]
-        : [12.0, 34.0, 56.0, 78.0, 100.0];
+    const totalPhotos = images.length;
+    // Evenly space photos between 8.0s and 108.0s
+    const photoSpans = images.map((_, idx) => {
+      if (totalPhotos === 1) return 35.0;
+      const step = 98.0 / (totalPhotos - 1);
+      return 8.0 + idx * step;
+    });
 
     images.forEach((img, idx) => {
       const anchor = photoSpans[idx];

@@ -8,7 +8,7 @@ import type { ActionResponse, GiftStatus } from "@/types/gift";
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_AUDIO_SIZE = 15 * 1024 * 1024; // 15MB
-const MAX_IMAGES_COUNT = 5;
+const MAX_IMAGES_COUNT = 10;
 
 const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",

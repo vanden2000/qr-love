@@ -7,7 +7,7 @@ import { optimizeImageFile } from "@/lib/media/optimizeImage";
 import type { ActionResponse, GiftStatus } from "@/types/gift";
 
 const MAX_AUDIO_SIZE = 15 * 1024 * 1024; // 15MB
-const MAX_IMAGES_COUNT = 5;
+const MAX_IMAGES_COUNT = 10;
 
 /**
  * Quick status switcher action for Admin

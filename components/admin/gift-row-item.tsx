@@ -207,7 +207,7 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
     if (!e.target.files) return;
     const files = Array.from(e.target.files);
     const totalCurrent = existingImages.length + newImageFiles.length;
-    const slots = 5 - totalCurrent;
+    const slots = 10 - totalCurrent;
     const added = files.slice(0, Math.max(0, slots)).map((file) => ({
       file,
       preview: URL.createObjectURL(file),
