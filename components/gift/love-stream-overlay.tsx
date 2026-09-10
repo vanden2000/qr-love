@@ -239,35 +239,40 @@ export function LoveStreamOverlay({
             "0 0 12px #FDE68A, 0 0 25px #F59E0B, 0 0 45px rgba(245,158,11,0.5), 0 2px 12px rgba(0,0,0,0.95)";
         }
 
-        const isShort = (event.text || "").length <= 12;
+        const charCount = (event.text || "").length;
+        const isShort = charCount <= 18;
 
-        const isOuterLane = Math.abs(event.xPercent) >= 20;
+        // Auto-scale down font if text is longer or needs wrapping
+        const calculatedFontSize =
+          charCount > 28
+            ? Math.min(event.fontSizePx, 13)
+            : charCount > 18
+            ? Math.min(event.fontSizePx, 15)
+            : event.fontSizePx;
 
         return (
           <div
             key={event.id}
             className={`absolute top-0 anim-stream-waterfall opacity-0 text-center pointer-events-none flex items-center justify-center ${
-              isOuterLane
-                ? "max-w-[38vw] sm:max-w-[170px]"
-                : isForeground
-                ? "max-w-[74vw] sm:max-w-[340px]"
+              isForeground
+                ? "max-w-[86vw] sm:max-w-[420px]"
                 : isPrimary
-                ? "max-w-[65vw] sm:max-w-[290px]"
-                : "max-w-[48vw] sm:max-w-[200px]"
+                ? "max-w-[80vw] sm:max-w-[360px]"
+                : "max-w-[65vw] sm:max-w-[280px]"
             }`}
             style={animCustomProps}
           >
             <h2
-              className={`leading-[1.25] select-none px-2 ${textColor} ${
+              className={`leading-[1.28] select-none px-1.5 ${textColor} ${
                 isForeground
                   ? "font-bold tracking-normal"
                   : isPrimary
                   ? "font-semibold tracking-wide"
                   : "font-normal tracking-wide"
-              } ${isShort ? "whitespace-nowrap" : "break-words whitespace-normal"}`}
+              } ${isShort ? "whitespace-nowrap" : "break-words whitespace-normal text-balance"}`}
               style={{
                 fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-                fontSize: `${event.fontSizePx}px`,
+                fontSize: `${calculatedFontSize}px`,
                 textShadow,
               }}
             >

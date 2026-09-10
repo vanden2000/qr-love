@@ -178,15 +178,16 @@ export function generateLoveStreamSchedule({
         ? userStoryPhrases[i % userStoryPhrases.length]
         : customPhrases[i % customPhrases.length];
 
+    const len = phrase.length;
     const isCenter = Math.abs(lane) <= 10;
     const layer: StreamLayer = isCenter ? (rng() < 0.35 ? "foreground" : "primary") : (rng() < 0.6 ? "mid" : "distant");
     const zDepthPx = layer === "foreground" ? 140 : layer === "primary" ? 40 : layer === "mid" ? -60 : -180;
     const fontSizePx =
       layer === "foreground"
-        ? (phrase.length > 20 ? 22 : 28)
+        ? (len > 24 ? 18 : len > 14 ? 22 : 26)
         : layer === "primary"
-        ? (phrase.length > 20 ? 17 : 22)
-        : (phrase.length > 20 ? 13 : 15);
+        ? (len > 24 ? 15 : len > 14 ? 18 : 21)
+        : (len > 24 ? 12 : len > 14 ? 14 : 16);
 
     events.push({
       id: `initial-wave-${i}`,
@@ -236,6 +237,7 @@ export function generateLoveStreamSchedule({
     const baseLane = horizontalLanes[i % horizontalLanes.length];
     const xPercent = baseLane + (rng() - 0.5) * 3.5;
     const isCenter = Math.abs(baseLane) <= 10;
+    const len = phrase.length;
 
     const tierRand = rng();
     let layer: StreamLayer = "mid";
@@ -251,7 +253,7 @@ export function generateLoveStreamSchedule({
       // GIANT FOREGROUND SWOOP
       layer = "foreground";
       zDepthPx = 140 + rng() * 60;
-      fontSizePx = phrase.length > 25 ? 22 : phrase.length > 15 ? 26 : 30;
+      fontSizePx = len > 24 ? 18 : len > 14 ? 22 : 26;
       opacityFocus = 0.95;
       scaleStart = 0.9;
       scaleFocus = 1.15;
@@ -261,7 +263,7 @@ export function generateLoveStreamSchedule({
       // PRIMARY HERO
       layer = "primary";
       zDepthPx = 20 + rng() * 50;
-      fontSizePx = phrase.length > 30 ? 17 : phrase.length > 18 ? 20 : 23;
+      fontSizePx = len > 24 ? 15 : len > 14 ? 18 : 21;
       opacityFocus = 1.0;
       scaleStart = 0.88;
       scaleFocus = 1.0;
@@ -271,7 +273,7 @@ export function generateLoveStreamSchedule({
       // MIDGROUND
       layer = "mid";
       zDepthPx = -40 - rng() * 60;
-      fontSizePx = phrase.length > 25 ? 13 : 16;
+      fontSizePx = len > 24 ? 12 : len > 14 ? 14 : 16;
       opacityFocus = 0.75;
       scaleStart = 0.82;
       scaleFocus = 0.9;
@@ -281,7 +283,7 @@ export function generateLoveStreamSchedule({
       // DISTANT AMBIENT
       layer = "distant";
       zDepthPx = -140 - rng() * 90;
-      fontSizePx = 12 + Math.floor(rng() * 3);
+      fontSizePx = 11 + Math.floor(rng() * 3);
       opacityFocus = 0.45;
       scaleStart = 0.7;
       scaleFocus = 0.75;
