@@ -285,10 +285,12 @@ export async function createGiftAction(
       };
     }
 
+    const validGiftId: string = createdGiftId;
+
     // 4. Insert story messages to gift_messages table if provided
     if (storyMessages.length > 0) {
       const messagesToInsert = storyMessages.map((content, idx) => ({
-        gift_id: createdGiftId,
+        gift_id: validGiftId,
         content,
         sort_order: idx,
       }));
@@ -309,8 +311,36 @@ export async function createGiftAction(
       sort_order: number;
     }> = [];
 
-    // Upload images to 'gift-images' bucket
-    for (let i = 0; i < imageFiles.length; i++) {
+    // Check if pre-uploaded media references were provided from /api/upload
+    const uploadedMediaRaw = formData.get("uploadedMediaJson") as string | null;
+    if (uploadedMediaRaw) {
+      try {
+        const parsedUploadedMedia = JSON.parse(uploadedMediaRaw) as Array<{
+          type: "image" | "audio";
+          url: string;
+          storage_path: string;
+          sort_order?: number;
+        }>;
+        if (Array.isArray(parsedUploadedMedia) && parsedUploadedMedia.length > 0) {
+          parsedUploadedMedia.forEach((m, idx) => {
+            mediaInserts.push({
+              gift_id: validGiftId,
+              type: m.type,
+              url: m.url,
+              storage_path: m.storage_path,
+              sort_order: typeof m.sort_order === "number" ? m.sort_order : idx,
+            });
+          });
+        }
+      } catch (parseErr) {
+        console.warn("Could not parse uploadedMediaJson:", parseErr);
+      }
+    }
+
+    // Direct upload fallback if uploadedMediaJson was not used
+    if (mediaInserts.length === 0) {
+      // Upload images to 'gift-images' bucket
+      for (let i = 0; i < imageFiles.length; i++) {
       const file = imageFiles[i];
       const extension = file.type === "image/webp" ? "webp" : "jpg";
       const fileId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${i}`;
@@ -374,14 +404,15 @@ export async function createGiftAction(
         .from("gift-audio")
         .getPublicUrl(relativePath);
 
-      mediaInserts.push({
-        gift_id: createdGiftId,
-        type: "audio",
+        mediaInserts.push({
+          gift_id: createdGiftId,
+          type: "audio",
         url: publicUrlData.publicUrl,
         storage_path: fullStoragePath,
         sort_order: 0,
       });
     }
+  }
 
     // Insert all media metadata records into gift_media
     if (mediaInserts.length > 0) {

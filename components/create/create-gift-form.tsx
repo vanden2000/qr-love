@@ -61,6 +61,7 @@ export function CreateGiftForm() {
   const [audio, setAudio] = useState<{ file: File; previewUrl: string } | null>(null);
   const [audioStartSeconds, setAudioStartSeconds] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -345,6 +346,79 @@ export function CreateGiftForm() {
 
     startTransition(async () => {
       try {
+        setError(null);
+        const uploadedMediaList: Array<{
+          type: "image" | "audio";
+          url: string;
+          storage_path: string;
+          sort_order: number;
+        }> = [];
+
+        // 1. Upload images individually via /api/upload to avoid Vercel Serverless payload limits
+        if (images.length > 0) {
+          for (let i = 0; i < images.length; i++) {
+            setUploadStatus(`Đang tải ảnh (${i + 1}/${images.length})...`);
+            const imgFormData = new FormData();
+            imgFormData.append("file", images[i].file);
+            imgFormData.append("type", "image");
+
+            const uploadRes = await fetch("/api/upload", {
+              method: "POST",
+              body: imgFormData,
+            });
+
+            if (!uploadRes.ok) {
+              const errData = await uploadRes.json().catch(() => ({}));
+              throw new Error(errData.error || `Không thể tải lên ảnh thứ ${i + 1}.`);
+            }
+
+            const uploadJson = await uploadRes.json();
+            if (!uploadJson.success || !uploadJson.data) {
+              throw new Error(uploadJson.error || `Không thể tải lên ảnh thứ ${i + 1}.`);
+            }
+
+            uploadedMediaList.push({
+              type: "image",
+              url: uploadJson.data.url,
+              storage_path: uploadJson.data.storage_path,
+              sort_order: i,
+            });
+          }
+        }
+
+        // 2. Upload audio file if selected
+        if (audio) {
+          setUploadStatus("Đang tải file âm thanh...");
+          const audioFormData = new FormData();
+          audioFormData.append("file", audio.file);
+          audioFormData.append("type", "audio");
+
+          const audioRes = await fetch("/api/upload", {
+            method: "POST",
+            body: audioFormData,
+          });
+
+          if (!audioRes.ok) {
+            const errData = await audioRes.json().catch(() => ({}));
+            throw new Error(errData.error || "Không thể tải lên file âm thanh.");
+          }
+
+          const audioJson = await audioRes.json();
+          if (!audioJson.success || !audioJson.data) {
+            throw new Error(audioJson.error || "Không thể tải lên file âm thanh.");
+          }
+
+          uploadedMediaList.push({
+            type: "audio",
+            url: audioJson.data.url,
+            storage_path: audioJson.data.storage_path,
+            sort_order: 0,
+          });
+        }
+
+        setUploadStatus("Đang khởi tạo món quà...");
+
+        // 3. Send lightweight metadata payload to createGiftAction
         const dataPayload = new FormData();
         dataPayload.append("senderName", formData.senderName.trim());
         dataPayload.append("receiverName", formData.receiverName.trim());
@@ -353,6 +427,7 @@ export function CreateGiftForm() {
         dataPayload.append("relationshipType", relationship);
         dataPayload.append("occasionType", occasion);
         dataPayload.append("pronounType", pronoun);
+        dataPayload.append("uploadedMediaJson", JSON.stringify(uploadedMediaList));
 
         if (formData.startDate) {
           dataPayload.append("startDate", formData.startDate);
@@ -360,27 +435,20 @@ export function CreateGiftForm() {
         if (formData.streamPhraseCategoryId) {
           dataPayload.append("streamPhraseCategoryId", formData.streamPhraseCategoryId);
         }
+        if (audio) {
+          dataPayload.append("audioStartSeconds", audioStartSeconds.toFixed(2));
+        }
 
         // Append story messages
         for (const msg of cleanedStoryMessages) {
           dataPayload.append("storyMessages", msg);
         }
 
-        // Append images
-        for (const img of images) {
-          dataPayload.append("images", img.file);
-        }
-
-        // Append audio and start offset
-        if (audio) {
-          dataPayload.append("audio", audio.file);
-          dataPayload.append("audioStartSeconds", audioStartSeconds.toFixed(2));
-        }
-
         const response = await createGiftAction(dataPayload);
 
         if (!response.success || !response.data) {
           setError(response.error || "Không thể tạo món quà. Vui lòng thử lại.");
+          setUploadStatus(null);
           return;
         }
 
@@ -396,6 +464,7 @@ export function CreateGiftForm() {
         router.push(`/create/success/${response.data.slug}`);
       } catch (err) {
         console.error("Form submit error:", err);
+        setUploadStatus(null);
         const errMsg = err instanceof Error ? err.message : String(err);
         if (
           errMsg.includes("was not found on the server") ||
@@ -403,10 +472,6 @@ export function CreateGiftForm() {
         ) {
           setError(
             "Hệ thống vừa cập nhật phiên bản mới. Vui lòng bấm F5 (Tải lại trang) để đồng bộ và tiếp tục nhé!"
-          );
-        } else if (errMsg.includes("unexpected response") || errMsg.includes("Failed to fetch")) {
-          setError(
-            "Không thể kết nối đến máy chủ hoặc dung lượng ảnh/nhạc quá lớn. Vui lòng kiểm tra kết nối mạng và thử lại."
           );
         } else {
           setError(
@@ -920,7 +985,9 @@ export function CreateGiftForm() {
         className="w-full py-3.5 bg-gradient-to-r from-rose-600 via-rose-500 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-medium rounded-xl shadow-[0_0_20px_rgba(244,63,94,0.3)] transition-all cursor-pointer text-sm"
         disabled={isPending || isOptimizingImages}
       >
-        {isPending ? "Đang khởi tạo món quà..." : "✨ Tạo Món Quà Yêu Thương"}
+        {isPending
+          ? uploadStatus || "Đang khởi tạo món quà..."
+          : "✨ Tạo Món Quà Yêu Thương"}
       </Button>
     </form>
   );
