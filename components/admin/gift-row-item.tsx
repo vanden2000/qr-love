@@ -476,14 +476,17 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
                 required
               />
 
-              {/* Story Messages Section (Personal Letter View Only) */}
+              {/* Story Messages Section (3D Waterfall Phrases) */}
               <div className="space-y-2 pt-2">
                 <div className="flex justify-between items-center">
-                  <label className="text-xs font-medium uppercase tracking-wider text-rose-300/90">
-                    💌 Lời nhắn trong thư ({storyMessages.length}/10)
+                  <label className="text-xs font-medium uppercase tracking-wider text-cyan-300/90">
+                    💬 Quản lý lời muốn nói ({storyMessages.length}/10)
                   </label>
-                  <span className="text-[11px] text-zinc-500">• Chỉ người nhận thấy khi mở thư</span>
+                  <span className="text-[11px] text-zinc-400">• Chữ chạy trong không gian 3D</span>
                 </div>
+                <p className="text-[11px] text-zinc-400">
+                  Các câu ngắn này sẽ trôi từ trên xuống trong không gian 3D cùng ảnh kỷ niệm và trái tim phát sáng.
+                </p>
 
                 <div className="space-y-2">
                   {storyMessages.map((msg, idx) => (
@@ -491,14 +494,14 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
                       key={idx}
                       className="flex items-center gap-2 p-2 rounded-xl bg-zinc-900/80 border border-zinc-800"
                     >
-                      <span className="w-5 text-center text-xs font-serif text-rose-400">
+                      <span className="w-5 text-center text-xs font-serif text-cyan-400">
                         {idx + 1}
                       </span>
                       <input
                         type="text"
                         value={msg}
-                        maxLength={160}
-                        placeholder={`Đoạn thư ${idx + 1}...`}
+                        maxLength={80}
+                        placeholder={`Câu ngắn ${idx + 1}...`}
                         onChange={(e) => handleStoryMessageChange(idx, e.target.value)}
                         className="flex-1 bg-transparent text-xs text-zinc-100 focus:outline-none"
                       />
@@ -518,9 +521,9 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
                     <button
                       type="button"
                       onClick={handleAddStoryMessage}
-                      className="w-full py-2 px-3 rounded-xl border border-dashed border-zinc-800 hover:border-rose-500/50 text-xs text-rose-300/80 hover:text-rose-200 transition-colors"
+                      className="w-full py-2 px-3 rounded-xl border border-dashed border-zinc-800 hover:border-cyan-500/50 text-xs text-cyan-300/80 hover:text-cyan-200 transition-colors"
                     >
-                      + Thêm đoạn thư
+                      + Thêm câu chạy 3D
                     </button>
                   )}
                 </div>

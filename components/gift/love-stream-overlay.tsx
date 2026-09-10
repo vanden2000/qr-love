@@ -28,17 +28,17 @@ export function LoveStreamOverlay({
       key={`love-stream-field-${replayTrigger}`}
       className="fixed inset-0 z-30 pointer-events-none select-none overflow-hidden"
       style={{
-        perspective: "1000px",
-        perspectiveOrigin: "50% 45%",
+        perspective: "1100px",
+        perspectiveOrigin: "50% 40%",
         transformStyle: "preserve-3d",
       }}
     >
       <style jsx>{`
-        /* Slow, cinematic, readable flow with 2.8s-3.5s center dwell */
-        @keyframes loveStreamSlowFlow {
+        /* Smooth, Continuous 3D Waterfall Rain Motion from Top to Bottom */
+        @keyframes loveStreamWaterfall {
           0% {
             transform: translate3d(
-                calc(-50% + var(--flow-x-drift) * -0.3),
+                calc(-50% + var(--flow-x-drift) * -0.25),
                 var(--flow-y-start),
                 var(--flow-z-depth)
               )
@@ -47,37 +47,26 @@ export function LoveStreamOverlay({
               rotateY(var(--flow-rot-y));
             opacity: 0;
           }
-          16% {
+          14% {
             opacity: var(--flow-opacity-focus);
           }
-          36% {
+          50% {
             transform: translate3d(
                 -50%,
-                36vh,
+                46vh,
                 calc(var(--flow-z-depth) * 1.05)
               )
               scale(var(--flow-scale-focus))
-              rotateZ(calc(var(--flow-rot-z) * 0.5))
+              rotateZ(calc(var(--flow-rot-z) * 0.4))
               rotateY(0deg);
             opacity: var(--flow-opacity-focus);
           }
-          64% {
-            transform: translate3d(
-                -50%,
-                52vh,
-                calc(var(--flow-z-depth) * 1.05)
-              )
-              scale(var(--flow-scale-focus))
-              rotateZ(calc(var(--flow-rot-z) * 0.5))
-              rotateY(0deg);
+          86% {
             opacity: var(--flow-opacity-focus);
-          }
-          84% {
-            opacity: calc(var(--flow-opacity-focus) * 0.85);
           }
           100% {
             transform: translate3d(
-                calc(-50% + var(--flow-x-drift) * 0.3),
+                calc(-50% + var(--flow-x-drift) * 0.25),
                 var(--flow-y-end),
                 calc(var(--flow-z-depth) * 1.15)
               )
@@ -88,7 +77,7 @@ export function LoveStreamOverlay({
           }
         }
 
-        /* Final Journey Card: Fades and scales in at exactly 30.0s */
+        /* Final Journey Card: Fades and settles in at 30.0s */
         @keyframes loveFinalCardSettle {
           0% {
             transform: translate3d(-50%, -45%, 30px) scale(0.9);
@@ -100,9 +89,9 @@ export function LoveStreamOverlay({
           }
         }
 
-        .anim-stream-flow {
-          animation-name: loveStreamSlowFlow;
-          animation-timing-function: cubic-bezier(0.25, 1, 0.35, 1);
+        .anim-stream-waterfall {
+          animation-name: loveStreamWaterfall;
+          animation-timing-function: cubic-bezier(0.3, 0, 0.7, 1);
           animation-fill-mode: forwards;
           will-change: transform, opacity;
         }
@@ -117,7 +106,6 @@ export function LoveStreamOverlay({
       `}</style>
 
       {events.map((event) => {
-        // Base CSS custom properties driving the slow 3D physics per item
         const animCustomProps: React.CSSProperties = {
           ["--flow-y-start" as string]: `${event.yStartVh}vh`,
           ["--flow-y-end" as string]: `${event.yEndVh}vh`,
@@ -136,7 +124,7 @@ export function LoveStreamOverlay({
         };
 
         // ===================================================================
-        // 1. FINAL JOURNEY CARD (Appears at exactly 30.0s — NEVER in 0-30s)
+        // 1. FINAL JOURNEY CARD (Appears at 30.0s)
         // ===================================================================
         if (event.type === "FINAL_CARD" || event.isEnding) {
           return (
@@ -149,38 +137,37 @@ export function LoveStreamOverlay({
               }}
             >
               {/* Luminous Pulsing Ruby Heart */}
-              <div className="text-4xl sm:text-5xl text-rose-500 mb-3 animate-pulse drop-shadow-[0_0_20px_rgba(244,63,94,0.9)]">
+              <div className="text-4xl sm:text-5xl text-rose-500 mb-3 animate-pulse drop-shadow-[0_0_24px_rgba(244,63,94,0.95)]">
                 ♥
               </div>
 
-              <p className="text-[11px] sm:text-xs tracking-[0.3em] text-rose-300/80 uppercase font-light mb-2 drop-shadow">
+              <p className="text-[11px] sm:text-xs tracking-[0.3em] text-cyan-300/80 uppercase font-light mb-2 drop-shadow">
                 FOREVER & ALWAYS
               </p>
 
               <h1
-                className="text-2xl sm:text-3xl font-serif text-white font-medium tracking-wide drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)] px-2"
+                className="text-2xl sm:text-3xl font-sans text-white font-semibold tracking-wide drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)] px-2"
                 style={{
-                  fontFamily: "var(--font-playfair), serif",
                   textShadow:
-                    "0 0 16px rgba(251,113,133,0.6), 0 0 35px rgba(225,29,72,0.4)",
+                    "0 0 16px #38BDF8, 0 0 35px #0284C7, 0 0 50px rgba(2,132,199,0.5)",
                 }}
               >
                 {event.text}
               </h1>
 
               {event.subtext && (
-                <p className="mt-3 text-xs sm:text-sm text-rose-200/90 leading-relaxed font-serif italic max-w-xs drop-shadow-md">
+                <p className="mt-3 text-xs sm:text-sm text-cyan-100/90 leading-relaxed font-sans max-w-xs drop-shadow-md">
                   {event.subtext}
                 </p>
               )}
 
-              {/* Direct interactive CTAs on Final Card */}
+              {/* Direct interactive CTAs */}
               <div className="mt-6 flex items-center justify-center gap-3">
                 {onOpenLetter && (
                   <button
                     type="button"
                     onClick={onOpenLetter}
-                    className="px-5 py-2.5 rounded-full bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white text-xs sm:text-sm font-medium shadow-[0_0_20px_rgba(225,29,72,0.5)] active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+                    className="px-5 py-2.5 rounded-full bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white text-xs sm:text-sm font-medium shadow-[0_0_20px_rgba(225,29,72,0.6)] active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     <span>📖</span>
                     <span>Đọc thư</span>
@@ -203,26 +190,26 @@ export function LoveStreamOverlay({
         }
 
         // ===================================================================
-        // 2. PHOTO HERO (Slow 7.5s-8.4s memory moment, large 64-74vw, crisp)
+        // 2. MEMORY PHOTO CARDS (Cascading in Waterfall Flow)
         // ===================================================================
         if (event.type === "PHOTO_HERO" && event.photoUrl) {
           return (
             <div
               key={event.id}
-              className="absolute top-0 anim-stream-flow opacity-0 pointer-events-none"
+              className="absolute top-0 anim-stream-waterfall opacity-0 pointer-events-none"
               style={animCustomProps}
             >
-              <div className="relative w-[min(72vw,330px)] aspect-[4/5] rounded-3xl overflow-hidden p-1 bg-gradient-to-br from-rose-300/40 via-rose-500/20 to-rose-950/70 shadow-[0_0_35px_rgba(244,63,94,0.45),0_15px_45px_rgba(0,0,0,0.85)] border border-rose-300/40 backdrop-blur-sm">
-                <div className="relative w-full h-full rounded-2xl overflow-hidden bg-zinc-950">
+              <div className="relative w-[min(66vw,290px)] aspect-[4/5] rounded-2xl overflow-hidden p-1 bg-gradient-to-br from-cyan-400/40 via-rose-500/30 to-blue-950/80 shadow-[0_0_35px_rgba(56,189,248,0.45),0_15px_45px_rgba(0,0,0,0.85)] border border-cyan-300/40 backdrop-blur-sm">
+                <div className="relative w-full h-full rounded-xl overflow-hidden bg-zinc-950">
                   <Image
                     src={event.photoUrl}
                     alt="Love memory"
                     fill
-                    sizes="(max-width: 640px) 72vw, 330px"
+                    sizes="(max-width: 640px) 66vw, 290px"
                     className="object-cover"
                     unoptimized
                   />
-                  {/* Subtle soft sheen overlay */}
+                  {/* Sheen overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-white/10 pointer-events-none" />
                 </div>
               </div>
@@ -231,47 +218,55 @@ export function LoveStreamOverlay({
         }
 
         // ===================================================================
-        // 3. PRIMARY PHRASES & AMBIENT FLOATING TEXT (NO card, NO box, clean glow)
+        // 3. RADIANT NEON WATERFALL TYPOGRAPHY (Matching Reference Image)
         // ===================================================================
-        const isPrimary = event.type === "PRIMARY_PHRASE";
+        const isForeground = event.layer === "foreground";
+        const isPrimary = event.layer === "primary";
 
         let textShadow =
-          "0 0 10px rgba(251,113,133,0.7), 0 0 24px rgba(225,29,72,0.45), 0 2px 14px rgba(0,0,0,0.95)";
-        let textColor = "text-[#FFF3F6]";
+          "0 0 10px #38BDF8, 0 0 25px #0284C7, 0 0 45px rgba(2,132,199,0.6), 0 2px 10px rgba(0,0,0,0.95)";
+        let textColor = "text-[#E0F7FA]";
 
-        if (event.colorTone === "rose") {
-          textColor = "text-[#FFE4E6]";
+        if (event.colorTone === "neon-cyan") {
+          textColor = "text-[#E0F7FA]";
           textShadow =
-            "0 0 10px #FB7185, 0 0 22px #F43F5E, 0 2px 12px rgba(0,0,0,0.9)";
+            "0 0 12px #38BDF8, 0 0 28px #0284C7, 0 0 50px rgba(2,132,199,0.7), 0 2px 12px rgba(0,0,0,0.95)";
+        } else if (event.colorTone === "neon-white") {
+          textColor = "text-[#FFFFFF]";
+          textShadow =
+            "0 0 14px #FFFFFF, 0 0 28px #38BDF8, 0 0 50px rgba(56,189,248,0.6), 0 2px 12px rgba(0,0,0,0.95)";
+        } else if (event.colorTone === "neon-rose") {
+          textColor = "text-[#FFF0F5]";
+          textShadow =
+            "0 0 12px #FB7185, 0 0 28px #E11D48, 0 0 50px rgba(225,29,72,0.6), 0 2px 12px rgba(0,0,0,0.95)";
         } else if (event.colorTone === "gold-rose") {
-          textColor = "text-[#FFF8F9]";
+          textColor = "text-[#FFF8E7]";
           textShadow =
-            "0 0 12px #FECDD3, 0 0 24px #FB7185, 0 2px 12px rgba(0,0,0,0.9)";
-        } else if (event.colorTone === "hot-pink") {
-          textColor = "text-[#FFE4E9]";
-          textShadow =
-            "0 0 10px #F43F5E, 0 0 22px #BE123C, 0 2px 12px rgba(0,0,0,0.9)";
+            "0 0 12px #FDE68A, 0 0 25px #F59E0B, 0 0 45px rgba(245,158,11,0.5), 0 2px 12px rgba(0,0,0,0.95)";
         }
 
         return (
           <div
             key={event.id}
-            className={`absolute top-0 anim-stream-flow opacity-0 text-center pointer-events-none ${
-              isPrimary
-                ? "w-[min(90vw,420px)]"
-                : "max-w-[240px]"
+            className={`absolute top-0 anim-stream-waterfall opacity-0 text-center pointer-events-none ${
+              isForeground
+                ? "w-[min(94vw,480px)]"
+                : isPrimary
+                ? "w-[min(88vw,400px)]"
+                : "max-w-[260px]"
             }`}
             style={animCustomProps}
           >
-            {/* 100% Free-floating glowing typography (NO background box, NO card border) */}
             <h2
-              className={`font-serif leading-[1.3] select-none px-2 ${textColor} ${
-                isPrimary
-                  ? "font-medium whitespace-nowrap"
-                  : "font-normal italic"
+              className={`leading-[1.2] select-none px-2 ${textColor} ${
+                isForeground
+                  ? "font-bold tracking-normal whitespace-nowrap"
+                  : isPrimary
+                  ? "font-semibold tracking-wide whitespace-nowrap"
+                  : "font-normal tracking-wide"
               }`}
               style={{
-                fontFamily: "var(--font-playfair), serif",
+                fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                 fontSize: `${event.fontSizePx}px`,
                 textShadow,
               }}
@@ -284,4 +279,5 @@ export function LoveStreamOverlay({
     </div>
   );
 }
+
 

@@ -24,16 +24,16 @@ const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // Allow up to 10MB input before 
 const MAX_AUDIO_SIZE_BYTES = 15 * 1024 * 1024; // 15MB
 
 export const SUGGESTED_STORY_MESSAGES = [
-  "Cảm ơn em vì đã xuất hiện và làm thế giới của anh dịu dàng hơn",
-  "Mỗi khoảnh khắc ở cạnh em đều là điều bình yên nhất",
-  "Nụ cười của em là ánh sáng xua tan mọi mỏi mệt trong anh",
-  "Dù đi qua bao mùa đổi thay, anh vẫn chỉ chọn nắm tay em",
-  "Có em bên cạnh, mọi chặng đường phía trước đều hóa ngọt ngào",
-  "Tình yêu của chúng ta không cần ồn ào, chỉ cần chân thành và dài lâu",
-  "Cảm ơn em đã luôn lắng nghe, thấu hiểu và tin tưởng anh",
-  "Mong cho sau này, mỗi sớm mai thức dậy đều nhìn thấy nụ cười của em",
-  "Hãy để anh được chăm sóc và yêu thương em nhiều hơn mỗi ngày",
-  "Hành trình này đẹp nhất là bởi vì có em cùng đồng hành",
+  "Em yêu anh",
+  "vững vàng",
+  "thành công",
+  "Chúc anh luôn vui vẻ",
+  "Mãi bên nhau nhé",
+  "Anh luôn ở đây",
+  "Tự hào về em",
+  "Bình yên bên nhau",
+  "Cố lên nhé",
+  "Hạnh phúc mãi mãi",
 ];
 
 export function CreateGiftForm() {
@@ -51,9 +51,10 @@ export function CreateGiftForm() {
   });
 
   const [storyMessages, setStoryMessages] = useState<string[]>([
-    "Cảm ơn em vì đã xuất hiện và làm thế giới của anh dịu dàng hơn",
-    "Mỗi khoảnh khắc ở cạnh em đều là điều bình yên nhất",
-    "Mong mình sẽ còn bên nhau thật lâu",
+    "Em yêu anh",
+    "vững vàng",
+    "thành công",
+    "Chúc anh luôn vui vẻ",
   ]);
 
   const [images, setImages] = useState<SelectedImage[]>([]);
@@ -450,26 +451,29 @@ export function CreateGiftForm() {
           </p>
         </div>
 
-        {/* Section: Lời nhắn trong thư (Personal Letter) */}
+        {/* Section: Lời muốn nói (3D Waterfall Phrases) */}
         <div className="space-y-3 pt-2">
           <div className="flex justify-between items-center flex-wrap gap-1">
-            <label className="text-xs font-medium uppercase tracking-wider text-rose-300/90 flex items-center gap-1.5">
-              <span>💌 Lời nhắn trong thư ({storyMessages.length}/{MAX_STORY_MESSAGES})</span>
+            <label className="text-xs font-medium uppercase tracking-wider text-cyan-300/90 flex items-center gap-1.5">
+              <span>💬 Quản lý lời muốn nói ({storyMessages.length}/{MAX_STORY_MESSAGES})</span>
             </label>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleApplyAllSuggestions}
                 disabled={isPending}
-                className="px-2.5 py-1 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 hover:border-rose-400 text-[11px] text-rose-300 hover:text-rose-200 font-medium transition-all shadow-sm active:scale-95 flex items-center gap-1 cursor-pointer"
-                title="Tự động điền 10 câu mẫu lãng mạn"
+                className="px-2.5 py-1 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 hover:border-cyan-400 text-[11px] text-cyan-300 hover:text-cyan-200 font-medium transition-all shadow-sm active:scale-95 flex items-center gap-1 cursor-pointer"
+                title="Tự động điền 10 câu mẫu ngắn gọn"
               >
                 <span>✨</span>
                 <span>Điền nhanh 10 câu mẫu</span>
               </button>
-              <span className="text-[11px] text-zinc-500 hidden sm:inline">• Chỉ người nhận thấy khi mở thư</span>
+              <span className="text-[11px] text-zinc-400 hidden sm:inline">• Chữ chạy trong không gian 3D</span>
             </div>
           </div>
+          <p className="text-[11px] text-zinc-400">
+            Các câu ngắn này sẽ cùng hình ảnh và trái tim phát sáng trôi từ trên xuống trong không gian 3D (ví dụ: Em yêu anh, vững vàng, thành công...).
+          </p>
 
           <div className="space-y-2.5">
             {storyMessages.map((msg, idx) => (
@@ -477,15 +481,15 @@ export function CreateGiftForm() {
                 key={idx}
                 className="flex items-center gap-2 p-2 rounded-xl bg-zinc-900/70 border border-zinc-800"
               >
-                <span className="w-5 text-center text-xs font-serif text-rose-400/80 select-none">
+                <span className="w-5 text-center text-xs font-serif text-cyan-400/80 select-none">
                   {idx + 1}
                 </span>
 
                 <input
                   type="text"
                   value={msg}
-                  maxLength={160}
-                  placeholder={`Lời nhắn ${idx + 1}...`}
+                  maxLength={80}
+                  placeholder={`Câu ngắn ${idx + 1}...`}
                   onChange={(e) => handleStoryMessageChange(idx, e.target.value)}
                   disabled={isPending}
                   className="flex-1 bg-transparent text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
@@ -520,7 +524,7 @@ export function CreateGiftForm() {
                       onClick={() => handleRemoveStoryMessage(idx)}
                       disabled={isPending}
                       className="p-1 rounded text-zinc-500 hover:text-rose-400 hover:bg-zinc-800 text-xs"
-                      title="Xóa lời nhắn"
+                      title="Xóa câu này"
                     >
                       ✕
                     </button>
@@ -535,10 +539,10 @@ export function CreateGiftForm() {
                   type="button"
                   onClick={handleAddStoryMessage}
                   disabled={isPending}
-                  className="flex-1 py-2.5 px-3 rounded-xl border border-dashed border-zinc-800 hover:border-rose-500/50 bg-zinc-900/30 hover:bg-zinc-900/60 text-xs text-rose-300/80 hover:text-rose-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="flex-1 py-2.5 px-3 rounded-xl border border-dashed border-zinc-800 hover:border-cyan-500/50 bg-zinc-900/30 hover:bg-zinc-900/60 text-xs text-cyan-300/80 hover:text-cyan-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <span>+</span>
-                  <span>Thêm lời nhắn ({storyMessages.length}/{MAX_STORY_MESSAGES})</span>
+                  <span>Thêm câu chạy 3D ({storyMessages.length}/{MAX_STORY_MESSAGES})</span>
                 </button>
               )}
               {storyMessages.length < MAX_STORY_MESSAGES && (
@@ -546,7 +550,7 @@ export function CreateGiftForm() {
                   type="button"
                   onClick={handleApplyAllSuggestions}
                   disabled={isPending}
-                  className="py-2.5 px-3 rounded-xl border border-rose-500/30 hover:border-rose-500/60 bg-rose-950/30 hover:bg-rose-950/60 text-xs text-rose-300 hover:text-rose-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer font-medium"
+                  className="py-2.5 px-3 rounded-xl border border-cyan-500/30 hover:border-cyan-500/60 bg-cyan-950/30 hover:bg-cyan-950/60 text-xs text-cyan-300 hover:text-cyan-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer font-medium"
                 >
                   <span>✨</span>
                   <span>Điền đủ 10 câu mẫu</span>

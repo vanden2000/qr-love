@@ -1,6 +1,6 @@
 import type { GiftWithMedia } from "@/types/gift";
 
-export type StreamLayer = "distant" | "mid" | "primary";
+export type StreamLayer = "distant" | "mid" | "primary" | "foreground";
 
 export type StreamEventType =
   | "PRIMARY_PHRASE"
@@ -13,21 +13,21 @@ export interface LoveFieldEvent {
   type: StreamEventType;
   layer: StreamLayer;
   startTime: number; // in seconds (0.0 to 30.0)
-  duration: number; // in seconds (e.g. 6.5s to 9.5s)
+  duration: number; // in seconds (e.g. 5.5s to 8.5s)
   // 3D positioning & perspective
-  xPercent: number; // -35% (left lane) to +35% (right lane) of screen width
-  yStartVh: number; // spawn position (e.g. -18vh)
-  yEndVh: number; // exit position (e.g. 115vh)
-  zDepthPx: number; // CSS translateZ in px (e.g. -200px to +120px)
+  xPercent: number; // -42% (left) to +42% (right)
+  yStartVh: number; // spawn position (e.g. -22vh)
+  yEndVh: number; // exit position (e.g. 118vh)
+  zDepthPx: number; // CSS translateZ in px (-350px to +300px)
   scaleStart: number;
   scaleFocus: number;
   scaleEnd: number;
-  rotateZDeg: number; // -3deg to +3deg (gentle cinematic tilt)
-  rotateYDeg: number; // -6deg to +6deg
+  rotateZDeg: number; // -12deg to +12deg tilt
+  rotateYDeg: number; // -15deg to +15deg
   text?: string;
   subtext?: string;
   photoUrl?: string;
-  colorTone: "white-pink" | "rose" | "hot-pink" | "gold-rose";
+  colorTone: "neon-cyan" | "neon-white" | "neon-rose" | "gold-rose";
   fontSizePx: number;
   opacityFocus: number;
   isEnding?: boolean;
@@ -56,29 +56,29 @@ export interface ScheduleOptions {
 }
 
 const DEFAULT_FALLBACK_PHRASES = [
+  "Em yêu anh",
   "Anh yêu em",
-  "Thương em nhiều lắm",
+  "vững vàng",
+  "thành công",
+  "Happy Anniversary",
+  "Chúc anh luôn vui vẻ",
+  "Chúc em luôn vui vẻ",
+  "Luôn bên nhau nhé",
+  "1000 Days",
   "Có em là đủ",
-  "Mãi bên nhau nhé",
-  "Luôn nhớ đến em",
-  "Ở bên anh nhé",
-  "Anh luôn thương em",
-  "Em thật đặc biệt",
-  "Cố lên nhé",
-  "Em làm được mà",
-  "Đừng bỏ cuộc nha",
-  "Luôn tin vào em",
   "Tự hào về em",
-  "Mọi chuyện rồi sẽ ổn",
   "Anh luôn ở đây",
-  "Mỉm cười lên nha",
-  "Bình yên rồi sẽ đến",
+  "Bình yên bên nhau",
+  "Mãi mãi yêu em",
+  "Thương em nhiều lắm",
 ];
 
 /**
- * Generates slow, cinematic, emotional Love Stream events across 30 seconds.
- * Strictly uses admin stream phrases (no personal letter text).
- * Slower movement (6.5s-8.0s per phrase, 7.5s-9.5s per photo), 2.5s-3.5s readable focus time.
+ * Generates dense, luminous 3D waterfall stream events matching reference design:
+ * - Neon ice-blue / cyan, glowing white, and radiant rose typography cascading down.
+ * - Memory photos drifting through space.
+ * - Incorporates custom "Lời muốn nói" (story_messages), names, anniversary, and category phrases.
+ * - Multi-layered depth from giant foreground swoops to distant ambient glows.
  */
 export function generateLoveStreamSchedule({
   gift,
@@ -89,178 +89,8 @@ export function generateLoveStreamSchedule({
 
   const events: LoveFieldEvent[] = [];
 
-  // 1. Source Admin Stream Phrases (strictly NO gift.message or gift.story_messages)
-  const availablePhrases =
-    gift.stream_phrases && gift.stream_phrases.length > 0
-      ? gift.stream_phrases.map((p) => (typeof p === "string" ? p.trim() : (p as { content: string }).content?.trim())).filter(Boolean)
-      : DEFAULT_FALLBACK_PHRASES;
-
-  // Shuffle phrases deterministically using Fisher-Yates
-  const shuffledPhrases = [...availablePhrases];
-  for (let i = shuffledPhrases.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [shuffledPhrases[i], shuffledPhrases[j]] = [shuffledPhrases[j], shuffledPhrases[i]];
-  }
-
-  // Select 6 to 8 short phrases per 30-second run (never overload)
-  const targetPhraseCount = Math.min(
-    shuffledPhrases.length,
-    Math.max(6, Math.min(8, Math.floor(6 + rng() * 3)))
-  );
-  const selectedPhrases = shuffledPhrases.slice(0, targetPhraseCount);
-
-  // 2. Extract Photos (up to 5 photos)
-  const images = (gift.media || [])
-    .filter((m) => m.type === "image" && Boolean(m.url))
-    .slice(0, 5);
-
-  // 3. Color tones palette
-  const colorTones: ("white-pink" | "rose" | "hot-pink" | "gold-rose")[] = [
-    "white-pink",
-    "rose",
-    "gold-rose",
-    "hot-pink",
-  ];
-
-  // =========================================================================
-  // CHAPTER 1: PRIMARY PHRASES (0.8s - 24.5s) — SLOW FLOATING 1-LINE TYPOGRAPHY
-  // Traversal duration: 7.0s - 8.0s (Center focus read time: 2.8s - 3.5s)
-  // =========================================================================
-  const phraseStart = 0.8;
-  const phraseEnd = 23.5;
-  const phraseInterval = (phraseEnd - phraseStart) / selectedPhrases.length;
-
-  // 3-lane positioning with center preference: Left (-18% to -8%), Center (-3% to +3%), Right (+8% to +18%)
-  const lanes = [0, -12, 12, -4, 4, -10, 10, 0];
-
-  selectedPhrases.forEach((phrase, idx) => {
-    const baseStart = phraseStart + idx * phraseInterval;
-    const jitter = (rng() - 0.5) * 0.4;
-    const startTime = Math.max(0.5, Math.min(24.0, baseStart + jitter));
-    const duration = 7.2 + (rng() - 0.5) * 0.8; // 6.8s - 7.6s slow traversal
-
-    // Subtle drift in designated lane
-    const laneOffset = lanes[idx % lanes.length];
-    const xPercent = laneOffset + (rng() - 0.5) * 4.0;
-    const tiltZ = (rng() - 0.5) * 5.0; // -2.5° to +2.5° subtle tilt
-    const rotY = (rng() - 0.5) * 6.0;
-
-    events.push({
-      id: `primary-phrase-${idx}`,
-      type: "PRIMARY_PHRASE",
-      layer: "primary",
-      startTime: Math.round(startTime * 100) / 100,
-      duration: Math.round(duration * 100) / 100,
-      xPercent: Math.round(xPercent * 10) / 10,
-      yStartVh: -18,
-      yEndVh: 115,
-      zDepthPx: 40 + (rng() - 0.5) * 40, // Mild forward depth
-      scaleStart: 0.82,
-      scaleFocus: 1.0,
-      scaleEnd: 1.06,
-      rotateZDeg: Math.round(tiltZ * 10) / 10,
-      rotateYDeg: Math.round(rotY * 10) / 10,
-      text: phrase,
-      colorTone: colorTones[idx % colorTones.length],
-      fontSizePx: phrase.length > 50 ? 24 : phrase.length > 30 ? 28 : 32,
-      opacityFocus: 1.0,
-    });
-  });
-
-  // =========================================================================
-  // CHAPTER 2: MEMORY PHOTOS (3.0s - 24.0s) — SLOW, LARGE, CRISP (7.5s - 9.0s)
-  // =========================================================================
-  if (images.length > 0) {
-    let photoTimings: number[] = [];
-    if (images.length === 1) {
-      photoTimings = [8.5];
-    } else if (images.length === 2) {
-      photoTimings = [5.5, 14.5];
-    } else if (images.length === 3) {
-      photoTimings = [4.0, 11.0, 18.0];
-    } else if (images.length === 4) {
-      photoTimings = [3.5, 9.5, 15.5, 21.0];
-    } else {
-      // 5 photos nicely spaced
-      photoTimings = [3.0, 8.0, 13.0, 18.0, 22.5];
-    }
-
-    images.forEach((img, idx) => {
-      const anchor = photoTimings[idx];
-      const jitter = (rng() - 0.5) * 0.5;
-      const startTime = Math.max(2.5, Math.min(23.5, anchor + jitter));
-      const duration = 8.0 + (rng() - 0.5) * 0.8; // 7.6s - 8.4s slow traversal
-
-      // Gentle lateral position (-10% to +10%)
-      const xPercent = (idx % 2 === 0 ? -1 : 1) * (5 + rng() * 6);
-      const rotZ = (rng() - 0.5) * 4.0; // -2° to +2° gentle tilt
-      const rotY = (idx % 2 === 0 ? 1 : -1) * (3 + rng() * 4);
-
-      events.push({
-        id: `photo-hero-${idx}`,
-        type: "PHOTO_HERO",
-        layer: "primary",
-        startTime: Math.round(startTime * 100) / 100,
-        duration: Math.round(duration * 100) / 100,
-        xPercent: Math.round(xPercent * 10) / 10,
-        yStartVh: -24,
-        yEndVh: 118,
-        zDepthPx: 90, // Positioned forward
-        scaleStart: 0.86,
-        scaleFocus: 1.0,
-        scaleEnd: 1.05,
-        rotateZDeg: Math.round(rotZ * 10) / 10,
-        rotateYDeg: Math.round(rotY * 10) / 10,
-        photoUrl: img.url,
-        colorTone: "gold-rose",
-        fontSizePx: 0,
-        opacityFocus: 1.0,
-      });
-    });
-  }
-
-  // =========================================================================
-  // CHAPTER 3: AMBIENT FLOATING ACCENTS (Distant / Mid, 8-12 gentle items)
-  // =========================================================================
-  const ambientWords = ["♡", "Yêu thương", "Bình yên", "Luôn bên em", "Mãi mãi", "Tự hào", "♡"];
-  const ambientCount = 10;
-  const ambientInterval = 24.0 / ambientCount;
-
-  for (let i = 0; i < ambientCount; i++) {
-    const startTime = 1.2 + i * ambientInterval + (rng() - 0.5) * 0.6;
-    if (startTime > 25.5) continue;
-
-    const word = ambientWords[i % ambientWords.length];
-    const isDistant = i % 2 === 0;
-    const xPercent = (rng() - 0.5) * 70; // -35% to +35%
-    const tiltZ = (rng() - 0.5) * 12; // -6° to +6°
-    const duration = 8.5 + rng() * 2.0; // 8.5s - 10.5s
-
-    events.push({
-      id: `ambient-acc-${i}`,
-      type: "AMBIENT_SHORT",
-      layer: isDistant ? "distant" : "mid",
-      startTime: Math.round(startTime * 100) / 100,
-      duration: Math.round(duration * 100) / 100,
-      xPercent: Math.round(xPercent * 10) / 10,
-      yStartVh: -18,
-      yEndVh: 118,
-      zDepthPx: isDistant ? -220 - rng() * 150 : -80 - rng() * 80,
-      scaleStart: 0.7,
-      scaleFocus: isDistant ? 0.75 : 0.9,
-      scaleEnd: 0.72,
-      rotateZDeg: Math.round(tiltZ * 10) / 10,
-      rotateYDeg: (rng() - 0.5) * 10,
-      text: word,
-      colorTone: colorTones[Math.floor(rng() * colorTones.length)],
-      fontSizePx: word === "♡" ? 24 : 15,
-      opacityFocus: isDistant ? 0.45 : 0.65,
-    });
-  }
-
-  // =========================================================================
-  // CHAPTER 4: FINAL JOURNEY CARD (Triggered at 30.0s — ZERO card in 0-30s)
-  // =========================================================================
+  // 1. Calculate Anniversary Days & Labels
+  let anniversaryLabel = "Happy Anniversary";
   let anniversarySubtitle: string | undefined = undefined;
   if (gift.start_date) {
     const startTime = new Date(gift.start_date).getTime();
@@ -270,10 +100,242 @@ export function generateLoveStreamSchedule({
         1,
         Math.floor(Math.abs(createTime - startTime) / (1000 * 60 * 60 * 24))
       );
+      anniversaryLabel = `${days} Days`;
       anniversarySubtitle = `${days} ngày đong đầy yêu thương`;
     }
   }
 
+  // 2. Build Rich Pool of "Lời muốn nói" & Key Phrases
+  const customPhrases: string[] = [];
+
+  // A. Story Messages ("Lời muốn nói" managed per gift)
+  if (gift.story_messages && gift.story_messages.length > 0) {
+    gift.story_messages.forEach((sm) => {
+      const content = typeof sm === "string" ? sm : sm.content;
+      if (content && content.trim()) {
+        customPhrases.push(content.trim());
+      }
+    });
+  }
+
+  // B. Names & Key Identifiers
+  if (gift.receiver_name) customPhrases.push(gift.receiver_name.trim());
+  if (gift.sender_name) customPhrases.push(gift.sender_name.trim());
+  if (anniversaryLabel) customPhrases.push(anniversaryLabel);
+  customPhrases.push("Happy Anniversary");
+
+  // C. Admin / Category Stream Phrases
+  if (gift.stream_phrases && gift.stream_phrases.length > 0) {
+    gift.stream_phrases.forEach((p) => {
+      const txt = typeof p === "string" ? p.trim() : (p as { content: string }).content?.trim();
+      if (txt && !customPhrases.includes(txt)) {
+        customPhrases.push(txt);
+      }
+    });
+  }
+
+  // Fallbacks if pool is sparse
+  if (customPhrases.length < 8) {
+    DEFAULT_FALLBACK_PHRASES.forEach((p) => {
+      if (!customPhrases.includes(p)) customPhrases.push(p);
+    });
+  }
+
+  // 3. Extract Memory Photos
+  const images = (gift.media || [])
+    .filter((m) => m.type === "image" && Boolean(m.url))
+    .slice(0, 5);
+
+  // 4. Color Tone Palettes (Weighted heavily towards Neon Ice-Blue / Cyan as in reference)
+  const tones: ("neon-cyan" | "neon-white" | "neon-rose" | "gold-rose")[] = [
+    "neon-cyan",
+    "neon-cyan",
+    "neon-white",
+    "neon-cyan",
+    "neon-rose",
+    "gold-rose",
+  ];
+
+  // =========================================================================
+  // CHAPTER 1: DENSE WATERFALL TEXT STREAM (0.3s - 27.5s) — 50 to 65 EVENTS
+  // Distributes phrases across Foreground, Primary, Midground, and Distant layers
+  // =========================================================================
+  const totalTextEvents = 52;
+  const timeSpan = 26.5;
+
+  for (let i = 0; i < totalTextEvents; i++) {
+    const rawStart = 0.3 + (i / totalTextEvents) * timeSpan;
+    const jitter = (rng() - 0.5) * 0.7;
+    const startTime = Math.max(0.2, Math.min(27.0, rawStart + jitter));
+    const phrase = customPhrases[Math.floor(rng() * customPhrases.length)] || "Em yêu anh";
+
+    // Assign layer tier deterministically
+    const tierRand = rng();
+    let layer: StreamLayer = "mid";
+    let zDepthPx = 0;
+    let fontSizePx = 22;
+    let opacityFocus = 0.85;
+    let scaleStart = 0.85;
+    let scaleFocus = 1.0;
+    let scaleEnd = 1.1;
+    let duration = 6.2 + rng() * 1.8; // 6.2s - 8.0s waterfall fall
+
+    // Lateral position across screen width (-38% to +38%)
+    const xPercent = (rng() - 0.5) * 76;
+    const tiltZ = (rng() - 0.5) * 14; // -7° to +7° tilt
+    const rotY = (rng() - 0.5) * 12;
+
+    if (tierRand < 0.18) {
+      // GIANT FOREGROUND SWOOP (Passes very close to camera with high bloom)
+      layer = "foreground";
+      zDepthPx = 200 + rng() * 120; // +200px to +320px
+      fontSizePx = phrase.length > 25 ? 32 : phrase.length > 15 ? 38 : 46;
+      opacityFocus = 0.95;
+      scaleStart = 0.9;
+      scaleFocus = 1.35;
+      scaleEnd = 1.55;
+      duration = 5.2 + rng() * 1.2; // slightly faster foreground pass
+    } else if (tierRand < 0.55) {
+      // PRIMARY HERO / READABLE
+      layer = "primary";
+      zDepthPx = 40 + rng() * 80; // +40px to +120px
+      fontSizePx = phrase.length > 30 ? 22 : phrase.length > 18 ? 26 : 32;
+      opacityFocus = 1.0;
+      scaleStart = 0.85;
+      scaleFocus = 1.05;
+      scaleEnd = 1.18;
+      duration = 6.5 + rng() * 1.5;
+    } else if (tierRand < 0.82) {
+      // MIDGROUND
+      layer = "mid";
+      zDepthPx = -80 - rng() * 90; // -80px to -170px
+      fontSizePx = phrase.length > 25 ? 17 : 21;
+      opacityFocus = 0.75;
+      scaleStart = 0.8;
+      scaleFocus = 0.9;
+      scaleEnd = 0.95;
+      duration = 7.0 + rng() * 1.8;
+    } else {
+      // DISTANT AMBIENT GLOW
+      layer = "distant";
+      zDepthPx = -220 - rng() * 160; // -220px to -380px
+      fontSizePx = 14 + Math.floor(rng() * 4);
+      opacityFocus = 0.45;
+      scaleStart = 0.65;
+      scaleFocus = 0.72;
+      scaleEnd = 0.75;
+      duration = 8.0 + rng() * 2.2;
+    }
+
+    events.push({
+      id: `stream-phrase-${i}`,
+      type: layer === "primary" || layer === "foreground" ? "PRIMARY_PHRASE" : "AMBIENT_SHORT",
+      layer,
+      startTime: Math.round(startTime * 100) / 100,
+      duration: Math.round(duration * 100) / 100,
+      xPercent: Math.round(xPercent * 10) / 10,
+      yStartVh: -20,
+      yEndVh: 118,
+      zDepthPx: Math.round(zDepthPx),
+      scaleStart,
+      scaleFocus,
+      scaleEnd,
+      rotateZDeg: Math.round(tiltZ * 10) / 10,
+      rotateYDeg: Math.round(rotY * 10) / 10,
+      text: phrase,
+      colorTone: tones[Math.floor(rng() * tones.length)],
+      fontSizePx,
+      opacityFocus,
+    });
+  }
+
+  // =========================================================================
+  // CHAPTER 2: GLOWING HEART ICONS & AMBIENT ACCENTS ("♡", "♥", "Forever")
+  // =========================================================================
+  const symbols = ["♡", "♥", "♡", "Forever", "Always", "♡", "Bình yên"];
+  for (let s = 0; s < 16; s++) {
+    const startTime = 0.5 + (s / 16) * 26.0 + (rng() - 0.5) * 0.8;
+    if (startTime > 27.5) continue;
+
+    const sym = symbols[s % symbols.length];
+    const isClose = s % 4 === 0;
+
+    events.push({
+      id: `symbol-accent-${s}`,
+      type: "AMBIENT_SHORT",
+      layer: isClose ? "primary" : "distant",
+      startTime: Math.round(startTime * 100) / 100,
+      duration: Math.round((7.0 + rng() * 2.5) * 100) / 100,
+      xPercent: Math.round(((rng() - 0.5) * 80) * 10) / 10,
+      yStartVh: -18,
+      yEndVh: 118,
+      zDepthPx: isClose ? 80 : -260 - rng() * 120,
+      scaleStart: 0.7,
+      scaleFocus: isClose ? 1.1 : 0.75,
+      scaleEnd: 0.8,
+      rotateZDeg: Math.round(((rng() - 0.5) * 20) * 10) / 10,
+      rotateYDeg: (rng() - 0.5) * 15,
+      text: sym,
+      colorTone: sym === "♥" ? "neon-rose" : "neon-cyan",
+      fontSizePx: sym === "♡" || sym === "♥" ? (isClose ? 32 : 20) : 15,
+      opacityFocus: isClose ? 0.9 : 0.45,
+    });
+  }
+
+  // =========================================================================
+  // CHAPTER 3: FLOATING MEMORY PHOTOS (2.5s - 24.5s)
+  // Cascading smoothly down alongside glowing typography
+  // =========================================================================
+  if (images.length > 0) {
+    const photoSpans =
+      images.length === 1
+        ? [7.5]
+        : images.length === 2
+        ? [4.5, 14.0]
+        : images.length === 3
+        ? [3.5, 10.5, 18.0]
+        : images.length === 4
+        ? [3.0, 8.5, 14.5, 20.5]
+        : [2.5, 7.5, 12.5, 17.5, 22.0];
+
+    images.forEach((img, idx) => {
+      const anchor = photoSpans[idx];
+      const jitter = (rng() - 0.5) * 0.6;
+      const startTime = Math.max(2.0, Math.min(23.5, anchor + jitter));
+      const duration = 7.8 + rng() * 0.8; // 7.8s - 8.6s
+
+      // Stagger photos alternating left and right with subtle tilt
+      const side = idx % 2 === 0 ? -1 : 1;
+      const xPercent = side * (8 + rng() * 10);
+      const rotZ = side * (2.5 + rng() * 3.5);
+      const rotY = -side * (4 + rng() * 4);
+
+      events.push({
+        id: `photo-hero-${idx}`,
+        type: "PHOTO_HERO",
+        layer: "primary",
+        startTime: Math.round(startTime * 100) / 100,
+        duration: Math.round(duration * 100) / 100,
+        xPercent: Math.round(xPercent * 10) / 10,
+        yStartVh: -26,
+        yEndVh: 120,
+        zDepthPx: 110, // positioned forward for crisp prominence
+        scaleStart: 0.85,
+        scaleFocus: 1.02,
+        scaleEnd: 1.08,
+        rotateZDeg: Math.round(rotZ * 10) / 10,
+        rotateYDeg: Math.round(rotY * 10) / 10,
+        photoUrl: img.url,
+        colorTone: "neon-cyan",
+        fontSizePx: 0,
+        opacityFocus: 1.0,
+      });
+    });
+  }
+
+  // =========================================================================
+  // CHAPTER 4: FINAL JOURNEY CARD (Triggered at 30.0s)
+  // =========================================================================
   events.push({
     id: "final-journey-card",
     type: "FINAL_CARD",
@@ -283,7 +345,7 @@ export function generateLoveStreamSchedule({
     xPercent: 0,
     yStartVh: 0,
     yEndVh: 0,
-    zDepthPx: 40,
+    zDepthPx: 50,
     scaleStart: 0.85,
     scaleFocus: 1.0,
     scaleEnd: 1.0,
@@ -291,7 +353,7 @@ export function generateLoveStreamSchedule({
     rotateYDeg: 0,
     text: `${gift.sender_name || "Người thương"} ♡ ${gift.receiver_name}`,
     subtext: anniversarySubtitle || (gift.title ? `“${gift.title}”` : "Hành trình yêu thương mãi mãi"),
-    colorTone: "white-pink",
+    colorTone: "neon-cyan",
     fontSizePx: 28,
     opacityFocus: 1.0,
     isEnding: true,
@@ -302,4 +364,5 @@ export function generateLoveStreamSchedule({
 
   return events;
 }
+
 
