@@ -82,10 +82,10 @@ export async function createGiftAction(
     }
 
     // Validate story messages count and lengths if provided
-    if (storyMessages.length > 10) {
+    if (storyMessages.length > 25) {
       return {
         success: false,
-        error: "Chỉ được tạo tối đa 10 lời nhắn trong không gian.",
+        error: "Chỉ được tạo tối đa 25 câu trong phần Lời muốn nói.",
       };
     }
 

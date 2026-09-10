@@ -19,7 +19,7 @@ interface SelectedImage {
 }
 
 const MAX_IMAGES = 5;
-const MAX_STORY_MESSAGES = 10;
+const MAX_STORY_MESSAGES = 25;
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // Allow up to 10MB input before client compression
 const MAX_AUDIO_SIZE_BYTES = 15 * 1024 * 1024; // 15MB
 
@@ -34,6 +34,21 @@ export const SUGGESTED_STORY_MESSAGES = [
   "Bình yên bên nhau",
   "Cố lên nhé",
   "Hạnh phúc mãi mãi",
+  "Yêu thương đong đầy",
+  "Nắm chặt tay nhau",
+  "Cảm ơn vì có em",
+  "Luôn tin vào em",
+  "Đừng lo lắng nhé",
+  "Ở bên anh thật lâu",
+  "Nụ cười của em",
+  "Thế giới của anh",
+  "Dành trọn yêu thương",
+  "Thương em nhiều lắm",
+  "Cùng nhau già đi",
+  "Hôm nay thật vui nhé",
+  "Mỗi ngày đều yêu em",
+  "Hạnh phúc giản đơn",
+  "Mãi là của nhau",
 ];
 
 export function CreateGiftForm() {
@@ -117,7 +132,7 @@ export function CreateGiftForm() {
   };
 
   const handleApplyAllSuggestions = () => {
-    setStoryMessages([...SUGGESTED_STORY_MESSAGES]);
+    setStoryMessages([...SUGGESTED_STORY_MESSAGES.slice(0, 15)]);
   };
 
   const handleRemoveStoryMessage = (index: number) => {
@@ -463,10 +478,10 @@ export function CreateGiftForm() {
                 onClick={handleApplyAllSuggestions}
                 disabled={isPending}
                 className="px-2.5 py-1 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 hover:border-cyan-400 text-[11px] text-cyan-300 hover:text-cyan-200 font-medium transition-all shadow-sm active:scale-95 flex items-center gap-1 cursor-pointer"
-                title="Tự động điền 10 câu mẫu ngắn gọn"
+                title="Tự động điền 15 câu mẫu ngắn gọn"
               >
                 <span>✨</span>
-                <span>Điền nhanh 10 câu mẫu</span>
+                <span>Điền nhanh 15 câu mẫu</span>
               </button>
               <span className="text-[11px] text-zinc-400 hidden sm:inline">• Chữ chạy trong không gian 3D</span>
             </div>
@@ -553,7 +568,7 @@ export function CreateGiftForm() {
                   className="py-2.5 px-3 rounded-xl border border-cyan-500/30 hover:border-cyan-500/60 bg-cyan-950/30 hover:bg-cyan-950/60 text-xs text-cyan-300 hover:text-cyan-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer font-medium"
                 >
                   <span>✨</span>
-                  <span>Điền đủ 10 câu mẫu</span>
+                  <span>Điền đủ 15 câu mẫu</span>
                 </button>
               )}
             </div>

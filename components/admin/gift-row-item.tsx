@@ -179,7 +179,7 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
 
   // Edit Story Messages
   const handleAddStoryMessage = () => {
-    if (storyMessages.length >= 10) return;
+    if (storyMessages.length >= 25) return;
     setStoryMessages((prev) => [...prev, ""]);
   };
 
@@ -480,7 +480,7 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
               <div className="space-y-2 pt-2">
                 <div className="flex justify-between items-center">
                   <label className="text-xs font-medium uppercase tracking-wider text-cyan-300/90">
-                    💬 Quản lý lời muốn nói ({storyMessages.length}/10)
+                    💬 Quản lý lời muốn nói ({storyMessages.length}/25)
                   </label>
                   <span className="text-[11px] text-zinc-400">• Chữ chạy trong không gian 3D</span>
                 </div>
@@ -517,13 +517,13 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
                     </div>
                   ))}
 
-                  {storyMessages.length < 10 && (
+                  {storyMessages.length < 25 && (
                     <button
                       type="button"
                       onClick={handleAddStoryMessage}
                       className="w-full py-2 px-3 rounded-xl border border-dashed border-zinc-800 hover:border-cyan-500/50 text-xs text-cyan-300/80 hover:text-cyan-200 transition-colors"
                     >
-                      + Thêm câu chạy 3D
+                      + Thêm câu chạy 3D ({storyMessages.length}/25)
                     </button>
                   )}
                 </div>

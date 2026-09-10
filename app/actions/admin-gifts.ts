@@ -142,7 +142,7 @@ export async function updateGiftAction(
     await supabase.from("gift_messages").delete().eq("gift_id", giftId);
 
     if (storyMessages.length > 0) {
-      const messagesToInsert = storyMessages.slice(0, 10).map((content, idx) => ({
+      const messagesToInsert = storyMessages.slice(0, 25).map((content, idx) => ({
         gift_id: giftId,
         content: content.slice(0, 160),
         sort_order: idx,

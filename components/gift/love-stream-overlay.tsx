@@ -190,7 +190,7 @@ export function LoveStreamOverlay({
         }
 
         // ===================================================================
-        // 2. MEMORY PHOTO CARDS (Cascading in Waterfall Flow)
+        // 2. MEMORY PHOTO CARDS (Compact, Elegant, Perfectly Sized for Mobile)
         // ===================================================================
         if (event.type === "PHOTO_HERO" && event.photoUrl) {
           return (
@@ -199,13 +199,13 @@ export function LoveStreamOverlay({
               className="absolute top-0 anim-stream-waterfall opacity-0 pointer-events-none"
               style={animCustomProps}
             >
-              <div className="relative w-[min(64vw,280px)] aspect-[4/5] rounded-2xl overflow-hidden p-1 bg-gradient-to-br from-cyan-400/40 via-rose-500/30 to-blue-950/80 shadow-[0_0_35px_rgba(56,189,248,0.45),0_15px_45px_rgba(0,0,0,0.85)] border border-cyan-300/40 backdrop-blur-sm">
+              <div className="relative w-[min(48vw,200px)] aspect-[4/5] rounded-2xl overflow-hidden p-1 bg-gradient-to-br from-cyan-400/40 via-rose-500/30 to-blue-950/80 shadow-[0_0_25px_rgba(56,189,248,0.4),0_10px_35px_rgba(0,0,0,0.85)] border border-cyan-300/40 backdrop-blur-sm">
                 <div className="relative w-full h-full rounded-xl overflow-hidden bg-zinc-950">
                   <Image
                     src={event.photoUrl}
                     alt="Love memory"
                     fill
-                    sizes="(max-width: 640px) 64vw, 280px"
+                    sizes="(max-width: 640px) 48vw, 200px"
                     className="object-cover"
                     unoptimized
                   />
@@ -218,7 +218,7 @@ export function LoveStreamOverlay({
         }
 
         // ===================================================================
-        // 3. RADIANT NEON WATERFALL TYPOGRAPHY (Matching Reference Image)
+        // 3. RADIANT NEON WATERFALL TYPOGRAPHY (Strict Mobile Viewport Safety)
         // ===================================================================
         const isForeground = event.layer === "foreground";
         const isPrimary = event.layer === "primary";
@@ -245,17 +245,17 @@ export function LoveStreamOverlay({
             "0 0 12px #FDE68A, 0 0 25px #F59E0B, 0 0 45px rgba(245,158,11,0.5), 0 2px 12px rgba(0,0,0,0.95)";
         }
 
-        const isShort = (event.text || "").length <= 14;
+        const isShort = (event.text || "").length <= 12;
 
         return (
           <div
             key={event.id}
             className={`absolute top-0 anim-stream-waterfall opacity-0 text-center pointer-events-none flex items-center justify-center ${
               isForeground
-                ? "w-[min(88vw,420px)]"
+                ? "max-w-[74vw] sm:max-w-[340px]"
                 : isPrimary
-                ? "w-[min(82vw,360px)]"
-                : "max-w-[220px]"
+                ? "max-w-[68vw] sm:max-w-[300px]"
+                : "max-w-[190px]"
             }`}
             style={animCustomProps}
           >

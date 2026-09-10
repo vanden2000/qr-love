@@ -1,16 +1,9 @@
 /**
  * Scene Timeline Configuration & Interpolation Utilities for QR Love
- * 30-Second Love Stream Experience
- * Chapters:
- * 1. OPENING (0.0s - 3.0s)
- * 2. LOVE_STREAM_1 (3.0s - 8.5s)
- * 3. MEMORY_WAVE_1 (8.5s - 14.5s)
- * 4. MEMORY_WAVE_2 (14.5s - 20.5s)
- * 5. EMOTIONAL_PEAK (20.5s - 26.5s)
- * 6. ENDING (26.5s - 30.0s+)
+ * 2-Minute (120-Second) Immersive 3D Love Stream Experience
  */
 
-export const SCENE_DURATION = 30.0;
+export const SCENE_DURATION = 120.0;
 
 export type TimelineChapter =
   | "OPENING"
@@ -22,11 +15,11 @@ export type TimelineChapter =
 
 export function getTimelineChapter(time: number): TimelineChapter {
   const t = Math.max(0, Math.min(SCENE_DURATION, time));
-  if (t < 3.0) return "OPENING";
-  if (t < 8.5) return "LOVE_STREAM_1";
-  if (t < 14.5) return "MEMORY_WAVE_1";
-  if (t < 20.5) return "MEMORY_WAVE_2";
-  if (t < 26.5) return "EMOTIONAL_PEAK";
+  if (t < 6.0) return "OPENING";
+  if (t < 35.0) return "LOVE_STREAM_1";
+  if (t < 65.0) return "MEMORY_WAVE_1";
+  if (t < 95.0) return "MEMORY_WAVE_2";
+  if (t < 115.0) return "EMOTIONAL_PEAK";
   return "ENDING";
 }
 

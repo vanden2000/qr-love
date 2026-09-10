@@ -158,23 +158,26 @@ export function generateLoveStreamSchedule({
   ];
 
   // =========================================================================
-  // CHAPTER 1: DENSE WATERFALL TEXT STREAM (0.4s - 26.5s) — SLOW & CLEAR ON MOBILE
-  // Traversal duration: 8.5s - 11.0s (Smooth, readable, no rush)
+  // CHAPTER 1: DENSE 2-MINUTE WATERFALL TEXT STREAM (0.4s - 116.0s) — 200+ EVENTS
+  // Traversal duration: 9.5s - 12.5s (Slow, romantic, perfectly readable on mobile)
   // =========================================================================
-  const totalTextEvents = 44;
-  const timeSpan = 25.5;
+  const totalTextEvents = 190;
+  const timeSpan = 115.0;
 
-  // Track phrase rotation to ensure all user custom phrases are shown first
+  // Track phrase rotation to ensure all user custom phrases are shown prominently
   let userPhraseIndex = 0;
+
+  // 5 Safe mobile lanes: Left-Outer (-16%), Left-Inner (-8%), Center (0%), Right-Inner (+8%), Right-Outer (+16%)
+  const safeLanes = [0, -12, 12, -6, 6, 0, -15, 15, -9, 9];
 
   for (let i = 0; i < totalTextEvents; i++) {
     const rawStart = 0.4 + (i / totalTextEvents) * timeSpan;
-    const jitter = (rng() - 0.5) * 0.6;
-    const startTime = Math.max(0.3, Math.min(26.5, rawStart + jitter));
+    const jitter = (rng() - 0.5) * 0.8;
+    const startTime = Math.max(0.3, Math.min(116.0, rawStart + jitter));
 
-    // Choose phrase: alternate ensuring user's story phrases appear frequently
+    // Choose phrase: alternate ensuring user's custom phrases appear frequently
     let phrase: string;
-    if (userStoryPhrases.length > 0 && (i % 2 === 0 || i < userStoryPhrases.length * 2)) {
+    if (userStoryPhrases.length > 0 && (i % 2 === 0 || i < userStoryPhrases.length * 3)) {
       phrase = userStoryPhrases[userPhraseIndex % userStoryPhrases.length];
       userPhraseIndex++;
     } else {
@@ -185,58 +188,59 @@ export function generateLoveStreamSchedule({
     const tierRand = rng();
     let layer: StreamLayer = "mid";
     let zDepthPx = 0;
-    let fontSizePx = 18;
+    let fontSizePx = 17;
     let opacityFocus = 0.85;
     let scaleStart = 0.85;
     let scaleFocus = 1.0;
-    let scaleEnd = 1.08;
-    let duration = 9.0 + rng() * 2.0; // 9.0s - 11.0s slow graceful fall
+    let scaleEnd = 1.06;
+    let duration = 10.0 + rng() * 2.5; // 10.0s - 12.5s slow graceful fall
 
-    // Lateral position constrained to mobile-friendly center zone (-25% to +25%)
-    const xPercent = (rng() - 0.5) * 52;
-    const tiltZ = (rng() - 0.5) * 10; // -5° to +5° gentle tilt
-    const rotY = (rng() - 0.5) * 8;
+    // Lateral position strictly constrained within safe mobile lanes (-18% to +18%)
+    const baseLane = safeLanes[i % safeLanes.length];
+    const xPercent = baseLane + (rng() - 0.5) * 4.0;
+    const tiltZ = (rng() - 0.5) * 8; // -4° to +4° gentle tilt
+    const rotY = (rng() - 0.5) * 6;
 
-    if (tierRand < 0.2) {
-      // GIANT FOREGROUND SWOOP (Readable, luminous pass)
+    if (tierRand < 0.22) {
+      // GIANT FOREGROUND SWOOP (Passes close to camera, clear bloom)
       layer = "foreground";
-      zDepthPx = 160 + rng() * 90; // +160px to +250px
-      fontSizePx = phrase.length > 25 ? 26 : phrase.length > 15 ? 30 : 34;
+      zDepthPx = 140 + rng() * 70; // +140px to +210px
+      fontSizePx = phrase.length > 25 ? 24 : phrase.length > 15 ? 28 : 32;
       opacityFocus = 0.95;
       scaleStart = 0.9;
-      scaleFocus = 1.25;
-      scaleEnd = 1.35;
-      duration = 8.2 + rng() * 1.5; // 8.2s - 9.7s
+      scaleFocus = 1.2;
+      scaleEnd = 1.28;
+      duration = 9.2 + rng() * 1.8;
     } else if (tierRand < 0.6) {
       // PRIMARY HERO / READABLE
       layer = "primary";
-      zDepthPx = 30 + rng() * 60; // +30px to +90px
-      fontSizePx = phrase.length > 30 ? 19 : phrase.length > 18 ? 22 : 26;
+      zDepthPx = 25 + rng() * 50; // +25px to +75px
+      fontSizePx = phrase.length > 30 ? 18 : phrase.length > 18 ? 21 : 24;
       opacityFocus = 1.0;
       scaleStart = 0.85;
-      scaleFocus = 1.02;
-      scaleEnd = 1.1;
-      duration = 9.0 + rng() * 1.8;
+      scaleFocus = 1.0;
+      scaleEnd = 1.08;
+      duration = 10.0 + rng() * 2.0;
     } else if (tierRand < 0.85) {
       // MIDGROUND
       layer = "mid";
-      zDepthPx = -60 - rng() * 70; // -60px to -130px
-      fontSizePx = phrase.length > 25 ? 15 : 18;
+      zDepthPx = -50 - rng() * 60; // -50px to -110px
+      fontSizePx = phrase.length > 25 ? 14 : 17;
       opacityFocus = 0.75;
       scaleStart = 0.8;
       scaleFocus = 0.88;
       scaleEnd = 0.92;
-      duration = 9.8 + rng() * 2.0;
+      duration = 10.8 + rng() * 2.2;
     } else {
       // DISTANT AMBIENT GLOW
       layer = "distant";
-      zDepthPx = -180 - rng() * 120; // -180px to -300px
-      fontSizePx = 13 + Math.floor(rng() * 3);
+      zDepthPx = -160 - rng() * 100; // -160px to -260px
+      fontSizePx = 12 + Math.floor(rng() * 3);
       opacityFocus = 0.45;
       scaleStart = 0.68;
       scaleFocus = 0.72;
       scaleEnd = 0.75;
-      duration = 10.5 + rng() * 2.5;
+      duration = 11.5 + rng() * 2.5;
     }
 
     events.push({
@@ -265,9 +269,9 @@ export function generateLoveStreamSchedule({
   // CHAPTER 2: GLOWING HEART ICONS & AMBIENT ACCENTS ("♡", "♥", "Forever")
   // =========================================================================
   const symbols = ["♡", "♥", "♡", "Forever", "Always", "♡", "Bình yên"];
-  for (let s = 0; s < 14; s++) {
-    const startTime = 0.5 + (s / 14) * 26.0 + (rng() - 0.5) * 0.8;
-    if (startTime > 27.5) continue;
+  for (let s = 0; s < 45; s++) {
+    const startTime = 0.5 + (s / 45) * 115.0 + (rng() - 0.5) * 0.8;
+    if (startTime > 116.5) continue;
 
     const sym = symbols[s % symbols.length];
     const isClose = s % 4 === 0;
@@ -277,50 +281,49 @@ export function generateLoveStreamSchedule({
       type: "AMBIENT_SHORT",
       layer: isClose ? "primary" : "distant",
       startTime: Math.round(startTime * 100) / 100,
-      duration: Math.round((9.5 + rng() * 2.5) * 100) / 100,
-      xPercent: Math.round(((rng() - 0.5) * 54) * 10) / 10,
+      duration: Math.round((10.0 + rng() * 2.5) * 100) / 100,
+      xPercent: Math.round(((rng() - 0.5) * 36) * 10) / 10,
       yStartVh: -18,
       yEndVh: 118,
-      zDepthPx: isClose ? 70 : -220 - rng() * 100,
+      zDepthPx: isClose ? 60 : -190 - rng() * 90,
       scaleStart: 0.7,
       scaleFocus: isClose ? 1.05 : 0.75,
       scaleEnd: 0.8,
-      rotateZDeg: Math.round(((rng() - 0.5) * 16) * 10) / 10,
-      rotateYDeg: (rng() - 0.5) * 12,
+      rotateZDeg: Math.round(((rng() - 0.5) * 12) * 10) / 10,
+      rotateYDeg: (rng() - 0.5) * 10,
       text: sym,
       colorTone: sym === "♥" ? "neon-rose" : "neon-cyan",
-      fontSizePx: sym === "♡" || sym === "♥" ? (isClose ? 26 : 18) : 14,
+      fontSizePx: sym === "♡" || sym === "♥" ? (isClose ? 24 : 16) : 13,
       opacityFocus: isClose ? 0.9 : 0.45,
     });
   }
 
   // =========================================================================
-  // CHAPTER 3: FLOATING MEMORY PHOTOS (2.5s - 24.5s)
-  // Cascading smoothly down alongside glowing typography
+  // CHAPTER 3: FLOATING MEMORY PHOTOS (Spaced across 120s, Compact for Mobile)
   // =========================================================================
   if (images.length > 0) {
     const photoSpans =
       images.length === 1
-        ? [8.0]
+        ? [35.0]
         : images.length === 2
-        ? [5.0, 15.0]
+        ? [25.0, 75.0]
         : images.length === 3
-        ? [4.0, 11.5, 19.0]
+        ? [18.0, 55.0, 92.0]
         : images.length === 4
-        ? [3.5, 9.5, 15.5, 21.5]
-        : [2.5, 7.5, 12.5, 17.5, 22.5];
+        ? [15.0, 42.0, 70.0, 98.0]
+        : [12.0, 34.0, 56.0, 78.0, 100.0];
 
     images.forEach((img, idx) => {
       const anchor = photoSpans[idx];
-      const jitter = (rng() - 0.5) * 0.5;
-      const startTime = Math.max(2.0, Math.min(23.5, anchor + jitter));
-      const duration = 9.5 + rng() * 1.5; // 9.5s - 11.0s slow traversal
+      const jitter = (rng() - 0.5) * 1.5;
+      const startTime = Math.max(4.0, Math.min(110.0, anchor + jitter));
+      const duration = 11.0 + rng() * 1.5; // 11.0s - 12.5s slow traversal
 
-      // Gentle lateral position (-6% to +6%) to keep photo fully on screen
+      // Gentle lateral position (-4% to +4%) so photo is perfectly centered on mobile
       const side = idx % 2 === 0 ? -1 : 1;
-      const xPercent = side * (4 + rng() * 5);
-      const rotZ = side * (1.5 + rng() * 2.0);
-      const rotY = -side * (3 + rng() * 3);
+      const xPercent = side * (2.5 + rng() * 3.5);
+      const rotZ = side * (1.2 + rng() * 1.5);
+      const rotY = -side * (2.5 + rng() * 2.5);
 
       events.push({
         id: `photo-hero-${idx}`,
@@ -331,10 +334,10 @@ export function generateLoveStreamSchedule({
         xPercent: Math.round(xPercent * 10) / 10,
         yStartVh: -26,
         yEndVh: 120,
-        zDepthPx: 90, // positioned forward for crisp prominence
+        zDepthPx: 80, // positioned forward for crisp prominence
         scaleStart: 0.85,
         scaleFocus: 1.0,
-        scaleEnd: 1.06,
+        scaleEnd: 1.05,
         rotateZDeg: Math.round(rotZ * 10) / 10,
         rotateYDeg: Math.round(rotY * 10) / 10,
         photoUrl: img.url,
@@ -346,13 +349,13 @@ export function generateLoveStreamSchedule({
   }
 
   // =========================================================================
-  // CHAPTER 4: FINAL JOURNEY CARD (Triggered at 30.0s)
+  // CHAPTER 4: FINAL JOURNEY CARD (Triggered at 120.0s / 2 Minutes)
   // =========================================================================
   events.push({
     id: "final-journey-card",
     type: "FINAL_CARD",
     layer: "primary",
-    startTime: 30.0, // EXACTLY at 30.0s!
+    startTime: 120.0, // EXACTLY at 120.0s (2 Minutes)!
     duration: 999.0, // Persists in static final state
     xPercent: 0,
     yStartVh: 0,
@@ -366,7 +369,7 @@ export function generateLoveStreamSchedule({
     text: `${gift.sender_name || "Người thương"} ♡ ${gift.receiver_name}`,
     subtext: anniversarySubtitle || (gift.title ? `“${gift.title}”` : "Hành trình yêu thương mãi mãi"),
     colorTone: "neon-cyan",
-    fontSizePx: 28,
+    fontSizePx: 26,
     opacityFocus: 1.0,
     isEnding: true,
   });
