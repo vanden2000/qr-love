@@ -15,9 +15,18 @@ import { AudioStartEditor } from "@/components/admin/audio-start-editor";
 interface GiftRowItemProps {
   gift: GiftWithMedia;
   onDeleted?: (giftId: string) => void;
+  isSelected?: boolean;
+  onToggleSelect?: (giftId: string) => void;
+  onRequestDelete?: (gift: GiftWithMedia) => void;
 }
 
-export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
+export function GiftRowItem({
+  gift,
+  onDeleted,
+  isSelected = false,
+  onToggleSelect,
+  onRequestDelete,
+}: GiftRowItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [status, setStatus] = useState<GiftStatus>(gift.status || "draft");
   const [isStatusPending, startStatusTransition] = useTransition();
@@ -284,9 +293,22 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
   };
 
   return (
-    <div className="border-b border-zinc-800/60 transition-colors last:border-b-0">
+    <div className={`border-b border-zinc-800/60 transition-colors last:border-b-0 ${isSelected ? "bg-rose-950/20" : ""}`}>
       {/* 1. Main Row Header */}
       <div className="flex items-center justify-between p-3.5 sm:p-4 gap-3 hover:bg-zinc-900/40 transition-colors">
+        {/* Checkbox for Bulk Selection */}
+        {onToggleSelect && (
+          <div className="flex items-center pr-1" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => onToggleSelect(gift.id)}
+              className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-rose-600 focus:ring-rose-500/30 focus:ring-offset-0 cursor-pointer accent-rose-600"
+              title="Chọn món quà"
+            />
+          </div>
+        )}
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-zinc-100 text-sm truncate">
@@ -302,7 +324,7 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
           </p>
         </div>
 
-        {/* Quick Status Dropdown Badge */}
+        {/* Quick Status Dropdown & Action Buttons */}
         <div className="flex items-center gap-2">
           <div className="relative">
             <select
@@ -340,6 +362,23 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
             }`}
           >
             <span>{isExpanded ? "▲ Thu gọn" : "▼ Xem & Sửa"}</span>
+          </button>
+
+          {/* Quick Delete Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onRequestDelete) {
+                onRequestDelete(gift);
+              } else {
+                setShowDeleteConfirm(true);
+              }
+            }}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-zinc-900 hover:bg-rose-950/80 border border-zinc-800 hover:border-rose-800 text-zinc-400 hover:text-rose-300 transition-colors cursor-pointer flex items-center gap-1"
+            title="Xóa nhanh món quà này"
+          >
+            <span>🗑️</span>
+            <span className="hidden sm:inline">Xóa</span>
           </button>
         </div>
       </div>

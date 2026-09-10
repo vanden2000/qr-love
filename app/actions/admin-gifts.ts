@@ -377,3 +377,97 @@ export async function deleteGiftAction(
     };
   }
 }
+
+/**
+ * Bulk deletes multiple gifts and cleans up ALL associated storage files
+ */
+export async function bulkDeleteGiftsAction(
+  giftIds: string[]
+): Promise<ActionResponse<{ count: number }>> {
+  try {
+    await requireAdmin(false);
+
+    if (!giftIds || giftIds.length === 0) {
+      return { success: false, error: "Không có món quà nào được chọn để xóa." };
+    }
+
+    const supabase = createAdminClient();
+
+    // 1. Fetch all media for these gifts to delete from Storage
+    const { data: mediaItems } = await supabase
+      .from("gift_media")
+      .select("id, type, storage_path, gift_id")
+      .in("gift_id", giftIds);
+
+    if (mediaItems && mediaItems.length > 0) {
+      const imagePaths: string[] = [];
+      const audioPaths: string[] = [];
+
+      for (const item of mediaItems) {
+        let path = item.storage_path || "";
+        if (item.type === "image") {
+          if (path.startsWith("gift-images/")) path = path.slice("gift-images/".length);
+          if (path) imagePaths.push(path);
+        } else {
+          if (path.startsWith("gift-audio/")) path = path.slice("gift-audio/".length);
+          if (path) audioPaths.push(path);
+        }
+      }
+
+      if (imagePaths.length > 0) {
+        try {
+          await supabase.storage.from("gift-images").remove(imagePaths);
+        } catch (e) {
+          console.warn("Bulk image cleanup warning:", e);
+        }
+      }
+
+      if (audioPaths.length > 0) {
+        try {
+          await supabase.storage.from("gift-audio").remove(audioPaths);
+        } catch (e) {
+          console.warn("Bulk audio cleanup warning:", e);
+        }
+      }
+    }
+
+    // 2. Folder cleanup for all selected gifts
+    for (const id of giftIds) {
+      try {
+        const { data: imgFiles } = await supabase.storage.from("gift-images").list(id);
+        if (imgFiles && imgFiles.length > 0) {
+          await supabase.storage.from("gift-images").remove(imgFiles.map((f) => `${id}/${f.name}`));
+        }
+        const { data: audFiles } = await supabase.storage.from("gift-audio").list(id);
+        if (audFiles && audFiles.length > 0) {
+          await supabase.storage.from("gift-audio").remove(audFiles.map((f) => `${id}/${f.name}`));
+        }
+      } catch (fErr) {
+        console.warn("Folder cleanup error for giftId:", id, fErr);
+      }
+    }
+
+    // 3. Delete database records (cascades to gift_media & gift_messages)
+    const { error: deleteError } = await supabase
+      .from("gifts")
+      .delete()
+      .in("id", giftIds);
+
+    if (deleteError) {
+      console.error("Error bulk deleting gifts:", deleteError.message);
+      return { success: false, error: "Không thể xóa các món quà trong cơ sở dữ liệu." };
+    }
+
+    revalidatePath("/admin/dashboard");
+    revalidatePath("/admin/gifts");
+
+    return { success: true, data: { count: giftIds.length } };
+  } catch (err) {
+    console.error("bulkDeleteGiftsAction error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Đã xảy ra lỗi khi xóa hàng loạt món quà.",
+    };
+  }
+}
+
