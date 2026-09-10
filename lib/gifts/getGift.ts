@@ -143,3 +143,104 @@ export async function getGiftBySlug(
     throw err;
   }
 }
+
+export interface GetAdminGiftsOptions {
+  status?: string;
+  search?: string;
+  limit?: number;
+}
+
+/**
+ * Fetches all gifts with media and story messages for Admin Dashboard & Management.
+ */
+export async function getAllGiftsForAdmin(
+  options?: GetAdminGiftsOptions
+): Promise<GiftWithMedia[]> {
+  try {
+    const supabase = createAdminClient();
+
+    let query = supabase
+      .from("gifts")
+      .select("id, slug, sender_name, receiver_name, title, message, start_date, status, created_at, updated_at")
+      .order("created_at", { ascending: false });
+
+    if (options?.status && ["active", "draft", "hidden"].includes(options.status)) {
+      query = query.eq("status", options.status);
+    }
+
+    if (options?.search && options.search.trim().length > 0) {
+      const q = options.search.trim();
+      query = query.or(
+        `receiver_name.ilike.%${q}%,sender_name.ilike.%${q}%,title.ilike.%${q}%,slug.ilike.%${q}%`
+      );
+    }
+
+    if (options?.limit && options.limit > 0) {
+      query = query.limit(options.limit);
+    }
+
+    const { data: giftsData, error: giftsError } = await query;
+
+    if (giftsError || !giftsData) {
+      console.error("Error fetching gifts for admin:", giftsError?.message);
+      return [];
+    }
+
+    // Fetch media and story messages for all returned gifts
+    const giftIds = giftsData.map((g) => g.id);
+    if (giftIds.length === 0) return [];
+
+    const [{ data: allMedia }, { data: allMessages }] = await Promise.all([
+      supabase
+        .from("gift_media")
+        .select("id, gift_id, type, url, storage_path, sort_order")
+        .in("gift_id", giftIds)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("gift_messages")
+        .select("id, gift_id, content, sort_order, created_at")
+        .in("gift_id", giftIds)
+        .order("sort_order", { ascending: true }),
+    ]);
+
+    const mediaMap = new Map<string, GiftMedia[]>();
+    ((allMedia as GiftMedia[]) || []).forEach((m) => {
+      const list = mediaMap.get(m.gift_id) || [];
+      const bucket = m.type === "image" ? "gift-images" : "gift-audio";
+      let relativePath = m.storage_path || "";
+      if (relativePath.startsWith(`${bucket}/`)) {
+        relativePath = relativePath.slice(bucket.length + 1);
+      }
+      list.push({
+        ...m,
+        url: m.url || getPublicStorageUrl(bucket, relativePath),
+      });
+      mediaMap.set(m.gift_id, list);
+    });
+
+    const messagesMap = new Map<string, GiftMessage[]>();
+    ((allMessages as GiftMessage[]) || []).forEach((msg) => {
+      const list = messagesMap.get(msg.gift_id || "") || [];
+      list.push(msg);
+      messagesMap.set(msg.gift_id || "", list);
+    });
+
+    return giftsData.map((gift) => {
+      const media = mediaMap.get(gift.id) || [];
+      const userStoryMsgs = messagesMap.get(gift.id);
+      const storyMessages =
+        userStoryMsgs && userStoryMsgs.length > 0
+          ? userStoryMsgs
+          : deriveStoryMessagesFromText(gift.message);
+
+      return {
+        ...gift,
+        media,
+        story_messages: storyMessages,
+      } as GiftWithMedia;
+    });
+  } catch (err) {
+    console.error("Unexpected error in getAllGiftsForAdmin:", err);
+    return [];
+  }
+}
