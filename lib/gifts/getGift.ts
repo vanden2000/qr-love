@@ -66,6 +66,23 @@ export async function getGiftBySlug(
       return null;
     }
 
+    // 24-hour auto-expiration: active gifts automatically transition to draft after 24h
+    if (giftData.status === "active" && giftData.created_at) {
+      const createdAtMs = new Date(giftData.created_at).getTime();
+      const ageHours = (Date.now() - createdAtMs) / (1000 * 60 * 60);
+      if (ageHours >= 24) {
+        giftData.status = "draft";
+        try {
+          await supabase
+            .from("gifts")
+            .update({ status: "draft" })
+            .eq("id", giftData.id);
+        } catch (updateErr) {
+          console.warn("Could not auto-update expired gift status to draft:", updateErr);
+        }
+      }
+    }
+
     // Public view: ONLY render if status is active (draft & hidden return null -> 404)
     if (!options?.allowAnyStatus && giftData.status !== "active") {
       return null;
@@ -161,6 +178,18 @@ export async function getAllGiftsForAdmin(
 ): Promise<GiftWithMedia[]> {
   try {
     const supabase = createAdminClient();
+
+    // Auto-update active gifts created more than 24h ago to draft
+    try {
+      const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      await supabase
+        .from("gifts")
+        .update({ status: "draft" })
+        .eq("status", "active")
+        .lt("created_at", cutoff24h);
+    } catch (syncErr) {
+      console.warn("Could not batch sync 24h expired active gifts:", syncErr);
+    }
 
     let query = supabase
       .from("gifts")

@@ -166,10 +166,10 @@ export async function createGiftAction(
     let attempts = 0;
     const maxAttempts = 3;
 
-    const statusInput = ((formData.get("status") as string) || "draft").toLowerCase();
+    const statusInput = ((formData.get("status") as string) || "active").toLowerCase();
     const giftStatus: GiftStatus = ["active", "draft", "hidden"].includes(statusInput)
       ? (statusInput as GiftStatus)
-      : "draft";
+      : "active";
 
     const streamPhraseCategoryId = (formData.get("streamPhraseCategoryId") as string)?.trim() || null;
 
