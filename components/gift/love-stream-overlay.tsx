@@ -121,6 +121,21 @@ export function LoveStreamOverlay({
         // 1. FINAL JOURNEY CARD (Appears at 30.0s)
         // ===================================================================
         if (event.type === "FINAL_CARD" || event.isEnding) {
+          const isFriendship = (event.text || "").includes("✨");
+          const isColleague = (event.text || "").includes("✦");
+
+          const finalIcon = isFriendship ? "⭐" : isColleague ? "💎" : "♥";
+          const finalTag = isFriendship
+            ? "FRIENDS FOREVER"
+            : isColleague
+            ? "SUCCESS & PROSPERITY"
+            : "FOREVER & ALWAYS";
+          const iconGlow = isFriendship
+            ? "text-amber-400 drop-shadow-[0_0_24px_rgba(250,204,21,0.95)]"
+            : isColleague
+            ? "text-cyan-400 drop-shadow-[0_0_24px_rgba(56,189,248,0.95)]"
+            : "text-rose-500 drop-shadow-[0_0_24px_rgba(244,63,94,0.95)]";
+
           return (
             <div
               key={event.id}
@@ -130,13 +145,13 @@ export function LoveStreamOverlay({
                 animationPlayState: isPaused ? "paused" : "running",
               }}
             >
-              {/* Luminous Pulsing Ruby Heart */}
-              <div className="text-4xl sm:text-5xl text-rose-500 mb-3 animate-pulse drop-shadow-[0_0_24px_rgba(244,63,94,0.95)]">
-                ♥
+              {/* Luminous Pulsing Thematic Icon */}
+              <div className={`text-4xl sm:text-5xl mb-3 animate-pulse ${iconGlow}`}>
+                {finalIcon}
               </div>
 
               <p className="text-[11px] sm:text-xs tracking-[0.3em] text-cyan-300/80 uppercase font-light mb-2 drop-shadow">
-                FOREVER & ALWAYS
+                {finalTag}
               </p>
 
               <h1

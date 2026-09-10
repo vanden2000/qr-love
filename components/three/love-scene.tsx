@@ -79,6 +79,7 @@ interface LoveSceneProps {
 }
 
 export function LoveScene({
+  gift,
   isPaused = false,
   fallbackContent,
 }: LoveSceneProps) {
@@ -112,7 +113,7 @@ export function LoveScene({
           >
             <ContextLossManager onContextLost={handleContextLost} />
 
-            {/* Deep Burgundy & Cosmic Midnight Atmosphere */}
+            {/* Deep Atmosphere */}
             <color attach="background" args={["#080104"]} />
             <fog attach="fog" args={["#080104", 8, 38]} />
 
@@ -125,8 +126,9 @@ export function LoveScene({
             {/* Ambient Cosmic Stardust */}
             <StardustParticles count={perf.stardustCount} />
 
-            {/* 4-Tier 3D Heart Waterfall Stream */}
+            {/* Thematic 3D Waterfall Stream (Hearts, Stars, Lotus, Diamonds) */}
             <HeartParticles
+              relationship={gift?.relationship_type as any}
               count={perf.heartCount}
               isPaused={isPaused}
             />

@@ -332,9 +332,17 @@ export function generateLoveStreamSchedule({
   }
 
   // =========================================================================
-  // CHAPTER 2: GLOWING HEART ICONS & AMBIENT ACCENTS ("♡", "♥", "Forever")
+  // CHAPTER 2: GLOWING ACCENTS & THEMATIC SYMBOLS
   // =========================================================================
-  const symbols = ["♡", "♥", "♡", "Forever", "Always", "♡", "Bình yên", "♥"];
+  const symbolPools: Record<RelationshipType, string[]> = {
+    COUPLE: ["♡", "♥", "♡", "Forever", "Always", "♡", "Bình yên", "♥"],
+    FRIENDSHIP: ["⭐", "★", "✨", "Friends", "Forever", "★", "Tri kỷ", "✨"],
+    FAMILY: ["🌸", "🏡", "✨", "Bình an", "Yêu thương", "🌸", "Hạnh phúc"],
+    CRUSH: ["💌", "♡", "✨", "Thầm thương", "Sparkle", "♡", "Nhớ em"],
+    COLLEAGUE: ["✦", "💎", "★", "Success", "Vững vàng", "✦", "Phát triển"],
+  };
+  const symbols = symbolPools[rel] || symbolPools.COUPLE;
+
   for (let s = 0; s < 50; s++) {
     const startTime = 0.4 + (s / 50) * 115.0 + (rng() - 0.5) * 0.6;
     if (startTime > 116.5) continue;
@@ -358,8 +366,8 @@ export function generateLoveStreamSchedule({
       rotateZDeg: Math.round(((rng() - 0.5) * 10) * 10) / 10,
       rotateYDeg: (rng() - 0.5) * 8,
       text: sym,
-      colorTone: sym === "♥" ? "neon-rose" : "neon-cyan",
-      fontSizePx: sym === "♡" || sym === "♥" ? (isClose ? 22 : 15) : 12,
+      colorTone: sym === "♥" ? "neon-rose" : sym === "⭐" ? "gold-rose" : "neon-cyan",
+      fontSizePx: sym === "♡" || sym === "♥" || sym === "⭐" || sym === "🌸" || sym === "💎" ? (isClose ? 22 : 15) : 12,
       opacityFocus: isClose ? 0.88 : 0.4,
     });
   }
@@ -416,6 +424,7 @@ export function generateLoveStreamSchedule({
   // =========================================================================
   // CHAPTER 4: FINAL JOURNEY CARD (Triggered at 120.0s / 2 Minutes)
   // =========================================================================
+  const separator = rel === "FRIENDSHIP" ? " ✨ " : rel === "COLLEAGUE" ? " ✦ " : " ♡ ";
   events.push({
     id: "final-journey-card",
     type: "FINAL_CARD",
@@ -431,8 +440,8 @@ export function generateLoveStreamSchedule({
     scaleEnd: 1.0,
     rotateZDeg: 0,
     rotateYDeg: 0,
-    text: `${gift.sender_name || "Người thương"} ♡ ${gift.receiver_name}`,
-    subtext: anniversarySubtitle || (gift.title ? `“${gift.title}”` : "Hành trình yêu thương mãi mãi"),
+    text: `${gift.sender_name || "Người thương"}${separator}${gift.receiver_name}`,
+    subtext: anniversarySubtitle || (gift.title ? `“${gift.title}”` : preset.endingCardTitle),
     colorTone: "neon-cyan",
     fontSizePx: 26,
     opacityFocus: 1.0,
