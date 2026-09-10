@@ -122,12 +122,12 @@ export function GiftExperience({ gift }: GiftExperienceProps) {
             isPaused={!isPlaying}
           />
 
-          {/* Floating Control Bar (Discreet during stream, prominent after 30s finish) */}
+          {/* Floating Control Bar (Ultra-discreet 0.25 during stream, prominent after 30s finish) */}
           <div
-            className={`fixed bottom-5 sm:bottom-7 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 p-1.5 rounded-full bg-zinc-950/80 hover:bg-zinc-950/95 border border-rose-500/30 backdrop-blur-md shadow-2xl transition-all duration-700 ${
+            className={`fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 p-1.5 rounded-full bg-zinc-950/75 hover:bg-zinc-950/95 border border-rose-500/20 hover:border-rose-500/50 backdrop-blur-md shadow-2xl transition-all duration-700 ${
               isFinished
-                ? "opacity-100 scale-100 ring-2 ring-rose-500/40"
-                : "opacity-45 hover:opacity-90 scale-95"
+                ? "opacity-100 scale-100 ring-2 ring-rose-500/40 bg-zinc-950/90"
+                : "opacity-25 hover:opacity-95 active:opacity-95 scale-90 hover:scale-95"
             }`}
           >
             {/* Play / Pause Toggle */}
@@ -135,7 +135,7 @@ export function GiftExperience({ gift }: GiftExperienceProps) {
               type="button"
               onClick={handleTogglePlay}
               aria-label={isPlaying ? "Tạm dừng" : "Tiếp tục"}
-              className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-zinc-300 hover:text-white hover:bg-zinc-800/80 active:scale-95 transition-all cursor-pointer"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-zinc-300 hover:text-white hover:bg-zinc-800/80 active:scale-95 transition-all cursor-pointer"
               title={isPlaying ? "Tạm dừng" : "Tiếp tục"}
             >
               <span className="text-xs sm:text-sm">{isPlaying ? "⏸" : "▶"}</span>
@@ -146,20 +146,20 @@ export function GiftExperience({ gift }: GiftExperienceProps) {
               type="button"
               onClick={handleReplay}
               aria-label="Xem lại từ đầu"
-              className="px-3.5 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5 text-zinc-200 hover:text-white bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/50 active:scale-95 transition-all text-xs font-medium cursor-pointer"
+              className="px-3 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5 text-zinc-200 hover:text-white bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/50 active:scale-95 transition-all text-xs font-medium cursor-pointer"
               title="Xem lại từ đầu"
             >
               <span>↺</span>
               <span>Xem lại</span>
             </button>
 
-            <div className="w-[1px] h-4 sm:h-5 bg-zinc-800 mx-0.5" />
+            <div className="w-[1px] h-4 bg-zinc-800 mx-0.5" />
 
             {/* Switch to Full Letter Modal */}
             <button
               type="button"
               onClick={() => setShowLetter((prev) => !prev)}
-              className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-medium text-zinc-200 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/60 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-full text-xs font-medium text-zinc-200 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/60 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <span>📖</span>
               <span>{showLetter ? "Không gian 3D" : "Đọc thư"}</span>

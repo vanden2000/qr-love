@@ -16,7 +16,7 @@ interface HeartData {
   phase: number;
   tiltSpeed: number;
   colorHex: string;
-  tier: "bg" | "mid" | "fg";
+  tier: "bg" | "mid" | "near" | "fg";
 }
 
 interface HeartParticlesProps {
@@ -34,7 +34,7 @@ const HEART_PALETTE = [
 ];
 
 export function HeartParticles({
-  count = 65,
+  count = 72,
   isPaused = false,
 }: HeartParticlesProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
@@ -56,46 +56,51 @@ export function HeartParticles({
     return geom;
   }, []);
 
-  // 2. Precompute 3-tier deterministic particles with safe center corridor
+  // 2. Precompute 4-tier deterministic particles (Distant, Mid, Near, Giant Foreground Pass)
   const particles = useMemo<HeartData[]>(() => {
-    const rng = createSeededRNG("heart-cascade-seed-3042");
+    const rng = createSeededRNG("heart-perspective-field-seed-504");
     const list: HeartData[] = [];
 
-    const fgCount = Math.floor(count * 0.2); // 20% Foreground (edges)
-    const bgCount = Math.floor(count * 0.35); // 35% Background (distant)
-    const midCount = count - fgCount - bgCount; // 45% Midground
+    const fgCount = 5; // Giant foreground swoops
+    const nearCount = 14; // Near layer
+    const bgCount = 26; // Distant layer
+    const midCount = count - fgCount - nearCount - bgCount; // Mid layer
 
-    const generateParticle = (tier: "bg" | "mid" | "fg"): HeartData => {
+    const generateParticle = (tier: "bg" | "mid" | "near" | "fg"): HeartData => {
       let z: number;
       let scale: number;
       let fallSpeed: number;
       let baseX: number;
 
       if (tier === "fg") {
-        // Foreground (Z: +1.5 to +6.0) - Swept to Left/Right Wings for safe corridor
-        z = 1.5 + rng() * 4.5;
-        scale = 0.19 + rng() * 0.08;
-        fallSpeed = 1.8 + rng() * 1.2;
+        // Giant Foreground pass (Z: +4.0 to +7.0) — Massive swooping elements!
+        z = 4.0 + rng() * 3.0;
+        scale = 0.75 + rng() * 0.65; // Massive size 0.75 - 1.40!
+        fallSpeed = 3.2 + rng() * 1.8;
         const side = rng() > 0.5 ? 1 : -1;
-        baseX = side * (2.2 + rng() * 3.5); // Safe center corridor
+        baseX = side * (2.8 + rng() * 2.5);
+      } else if (tier === "near") {
+        // Near Layer (Z: +1.0 to +3.5)
+        z = 1.0 + rng() * 2.5;
+        scale = 0.22 + rng() * 0.12;
+        fallSpeed = 2.0 + rng() * 1.2;
+        const side = rng() > 0.5 ? 1 : -1;
+        baseX = side * (1.8 + rng() * 3.2);
       } else if (tier === "bg") {
-        // Background (Z: -12.0 to -28.0) - Distributed across full screen
-        z = -12.0 - rng() * 16.0;
-        scale = 0.08 + rng() * 0.05;
-        fallSpeed = 0.8 + rng() * 0.7;
-        baseX = (rng() - 0.5) * 14.0;
+        // Background (Z: -14.0 to -32.0)
+        z = -14.0 - rng() * 18.0;
+        scale = 0.05 + rng() * 0.04;
+        fallSpeed = 0.7 + rng() * 0.6;
+        baseX = (rng() - 0.5) * 16.0;
       } else {
-        // Midground (Z: -6.0 to +1.0)
-        z = -6.0 + rng() * 7.0;
-        scale = 0.13 + rng() * 0.06;
-        fallSpeed = 1.2 + rng() * 1.0;
-        const side = rng() > 0.5 ? 1 : -1;
-        baseX = side * (1.6 + rng() * 4.0);
+        // Midground (Z: -6.0 to +0.8)
+        z = -6.0 + rng() * 6.8;
+        scale = 0.12 + rng() * 0.07;
+        fallSpeed = 1.3 + rng() * 0.9;
+        baseX = (rng() - 0.5) * 12.0;
       }
 
-      // Initial Y staggered across vertical stream [-7.5, +7.5]
-      const initialY = (rng() - 0.5) * 15.0;
-
+      const initialY = (rng() - 0.5) * 16.0;
       const colorHex = HEART_PALETTE[Math.floor(rng() * HEART_PALETTE.length)];
 
       return {
@@ -104,16 +109,17 @@ export function HeartParticles({
         z,
         scale,
         fallSpeed,
-        swaySpeed: 0.8 + rng() * 1.2,
-        swayAmp: 0.15 + rng() * 0.3,
+        swaySpeed: 0.7 + rng() * 1.4,
+        swayAmp: 0.18 + rng() * 0.35,
         phase: rng() * Math.PI * 2,
-        tiltSpeed: 0.3 + rng() * 0.6,
+        tiltSpeed: 0.3 + rng() * 0.7,
         colorHex,
         tier,
       };
     };
 
     for (let i = 0; i < fgCount; i++) list.push(generateParticle("fg"));
+    for (let i = 0; i < nearCount; i++) list.push(generateParticle("near"));
     for (let i = 0; i < midCount; i++) list.push(generateParticle("mid"));
     for (let i = 0; i < bgCount; i++) list.push(generateParticle("bg"));
 
@@ -139,27 +145,27 @@ export function HeartParticles({
     if (!meshRef.current || isPaused) return;
 
     const clockTime = state.clock.getElapsedTime();
-    const streamHeight = 15.0;
+    const streamHeight = 16.0;
 
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
 
-      // Pure functional wrap without mutating `p`: (initialY - clockTime * speed + offset) mod height
+      // Downward fall wrap: initialY - clockTime * fallSpeed
       const rawY = p.initialY - clockTime * p.fallSpeed;
       const normalizedY = ((rawY % streamHeight) + streamHeight) % streamHeight;
-      const currentY = normalizedY - 7.5;
+      const currentY = normalizedY - 8.0;
 
       // Horizontal organic sway
       const currentX = p.baseX + Math.sin(clockTime * p.swaySpeed + p.phase) * p.swayAmp;
 
       // Subtle pulse and gentle tilt
-      const pulseScale = p.scale * (1 + Math.sin(clockTime * 1.4 + p.phase) * 0.06);
+      const pulseScale = p.scale * (1 + Math.sin(clockTime * 1.5 + p.phase) * 0.08);
 
       dummy.position.set(currentX, currentY, p.z);
       dummy.rotation.set(
         0,
         0,
-        Math.sin(clockTime * p.tiltSpeed + p.phase) * 0.25
+        Math.sin(clockTime * p.tiltSpeed + p.phase) * 0.28
       );
       dummy.scale.set(pulseScale, pulseScale, pulseScale);
       dummy.updateMatrix();
@@ -175,7 +181,7 @@ export function HeartParticles({
       <meshBasicMaterial
         side={THREE.DoubleSide}
         transparent
-        opacity={0.88}
+        opacity={0.92}
       />
     </instancedMesh>
   );
