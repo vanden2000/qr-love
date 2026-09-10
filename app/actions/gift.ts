@@ -173,6 +173,12 @@ export async function createGiftAction(
 
     const streamPhraseCategoryId = (formData.get("streamPhraseCategoryId") as string)?.trim() || null;
 
+    const audioStartSecondsRaw = formData.get("audioStartSeconds");
+    const audioStartSeconds =
+      hasAudio && audioStartSecondsRaw !== null && isFinite(Number(audioStartSecondsRaw))
+        ? Math.max(0, Number(audioStartSecondsRaw))
+        : 0;
+
     while (attempts < maxAttempts) {
       const { data, error } = await supabase
         .from("gifts")
@@ -185,6 +191,7 @@ export async function createGiftAction(
           start_date: startDate || null,
           status: giftStatus,
           stream_phrase_category_id: streamPhraseCategoryId,
+          audio_start_seconds: audioStartSeconds,
         })
         .select("id, slug")
         .single();

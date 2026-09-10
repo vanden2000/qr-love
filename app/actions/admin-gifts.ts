@@ -83,21 +83,34 @@ export async function updateGiftAction(
 
     const streamPhraseCategoryId = (formData.get("streamPhraseCategoryId") as string)?.trim() || null;
 
+    const audioStartSecondsRaw = formData.get("audioStartSeconds");
+    let audioStartSeconds: number | undefined = undefined;
+    if (audioStartSecondsRaw !== null) {
+      const num = Number(audioStartSecondsRaw);
+      audioStartSeconds = isFinite(num) && num >= 0 ? num : 0;
+    }
+
     const supabase = createAdminClient();
 
     // 1. Update basic gift fields
+    const updateGiftPayload: Record<string, unknown> = {
+      sender_name: senderName,
+      receiver_name: receiverName,
+      title,
+      message,
+      start_date: startDate || null,
+      status: ["active", "draft", "hidden"].includes(status) ? status : "draft",
+      stream_phrase_category_id: streamPhraseCategoryId,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (audioStartSeconds !== undefined) {
+      updateGiftPayload.audio_start_seconds = audioStartSeconds;
+    }
+
     const { error: giftUpdateError } = await supabase
       .from("gifts")
-      .update({
-        sender_name: senderName,
-        receiver_name: receiverName,
-        title,
-        message,
-        start_date: startDate || null,
-        status: ["active", "draft", "hidden"].includes(status) ? status : "draft",
-        stream_phrase_category_id: streamPhraseCategoryId,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateGiftPayload)
       .eq("id", giftId);
 
     if (giftUpdateError) {

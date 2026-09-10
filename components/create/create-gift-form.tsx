@@ -11,6 +11,7 @@ import {
   optimizeImageFile,
   IMAGE_OPTIMIZATION_CONFIG,
 } from "@/lib/media/optimizeImage";
+import { AudioStartEditor } from "@/components/admin/audio-start-editor";
 
 interface SelectedImage {
   file: File;
@@ -56,7 +57,8 @@ export function CreateGiftForm() {
   ]);
 
   const [images, setImages] = useState<SelectedImage[]>([]);
-  const [audio, setAudio] = useState<File | null>(null);
+  const [audio, setAudio] = useState<{ file: File; previewUrl: string } | null>(null);
+  const [audioStartSeconds, setAudioStartSeconds] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -64,16 +66,24 @@ export function CreateGiftForm() {
 
   // Clean up object URLs on component unmount to prevent memory leaks
   const imagesRef = useRef(images);
+  const audioRef = useRef(audio);
 
   React.useEffect(() => {
     imagesRef.current = images;
   }, [images]);
 
   React.useEffect(() => {
+    audioRef.current = audio;
+  }, [audio]);
+
+  React.useEffect(() => {
     return () => {
       imagesRef.current.forEach((img) => {
         URL.revokeObjectURL(img.previewUrl);
       });
+      if (audioRef.current) {
+        URL.revokeObjectURL(audioRef.current.previewUrl);
+      }
     };
   }, []);
 
@@ -221,14 +231,27 @@ export function CreateGiftForm() {
       return;
     }
 
-    setAudio(file);
+    if (audio) {
+      URL.revokeObjectURL(audio.previewUrl);
+    }
+
+    setAudio({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    });
+    setAudioStartSeconds(0);
+
     if (audioInputRef.current) {
       audioInputRef.current.value = "";
     }
   };
 
   const handleRemoveAudio = () => {
+    if (audio) {
+      URL.revokeObjectURL(audio.previewUrl);
+    }
     setAudio(null);
+    setAudioStartSeconds(0);
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -288,9 +311,10 @@ export function CreateGiftForm() {
           dataPayload.append("images", img.file);
         }
 
-        // Append audio
+        // Append audio and start offset
         if (audio) {
-          dataPayload.append("audio", audio);
+          dataPayload.append("audio", audio.file);
+          dataPayload.append("audioStartSeconds", audioStartSeconds.toFixed(2));
         }
 
         const response = await createGiftAction(dataPayload);
@@ -303,6 +327,9 @@ export function CreateGiftForm() {
         // Clean up object URLs
         for (const img of images) {
           URL.revokeObjectURL(img.previewUrl);
+        }
+        if (audio) {
+          URL.revokeObjectURL(audio.previewUrl);
         }
 
         // Redirect to /create/success/[slug]
@@ -617,31 +644,20 @@ export function CreateGiftForm() {
           </div>
 
           {audio ? (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/80 border border-zinc-800">
-              <div className="flex items-center gap-2.5 overflow-hidden">
-                <span className="text-rose-400 text-base">🎵</span>
-                <div className="truncate text-xs text-zinc-200">
-                  <p className="truncate font-medium">{audio.name}</p>
-                  <p className="text-[10px] text-zinc-500">
-                    {(audio.size / (1024 * 1024)).toFixed(2)} MB
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleRemoveAudio}
-                disabled={isPending || isOptimizingImages}
-                className="ml-2 px-2 py-1 rounded-md text-xs text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 transition-colors"
-              >
-                Gỡ bỏ
-              </button>
-            </div>
+            <AudioStartEditor
+              audioSrc={audio.previewUrl}
+              audioName={audio.file.name}
+              value={audioStartSeconds}
+              onChange={setAudioStartSeconds}
+              onRemoveAudio={handleRemoveAudio}
+              disabled={isPending || isOptimizingImages}
+            />
           ) : (
             <button
               type="button"
               onClick={() => audioInputRef.current?.click()}
               disabled={isPending || isOptimizingImages}
-              className="w-full py-3.5 px-4 rounded-xl border border-dashed border-zinc-700 hover:border-rose-500/60 bg-zinc-900/40 hover:bg-zinc-900/80 flex items-center justify-center gap-2 text-xs text-zinc-400 hover:text-rose-400 transition-colors disabled:opacity-50"
+              className="w-full py-3.5 px-4 rounded-xl border border-dashed border-zinc-700 hover:border-rose-500/60 bg-zinc-900/40 hover:bg-zinc-900/80 flex items-center justify-center gap-2 text-xs text-zinc-400 hover:text-rose-400 transition-colors disabled:opacity-50 cursor-pointer"
             >
               <span>🎵</span>
               <span>Chọn file nhạc MP3</span>

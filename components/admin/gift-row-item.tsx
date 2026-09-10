@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition, useMemo } from "react";
+import React, { useState, useTransition, useMemo, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { GiftWithMedia, GiftStatus } from "@/types/gift";
@@ -10,6 +10,7 @@ import { downloadLuxuryGiftCard } from "@/lib/qr/generateGiftCardImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { AudioStartEditor } from "@/components/admin/audio-start-editor";
 
 interface GiftRowItemProps {
   gift: GiftWithMedia;
@@ -53,7 +54,55 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
   const [newImageFiles, setNewImageFiles] = useState<{ file: File; preview: string }[]>([]);
 
   const existingAudio = (gift.media || []).find((m) => m.type === "audio");
-  const [newAudioFile, setNewAudioFile] = useState<File | null>(null);
+  const [newAudio, setNewAudio] = useState<{ file: File; preview: string } | null>(null);
+  const [audioStartSeconds, setAudioStartSeconds] = useState<number>(
+    gift.audio_start_seconds || 0
+  );
+
+  const newAudioRef = useRef(newAudio);
+  const newImagesRef = useRef(newImageFiles);
+
+  React.useEffect(() => {
+    newAudioRef.current = newAudio;
+  }, [newAudio]);
+
+  React.useEffect(() => {
+    newImagesRef.current = newImageFiles;
+  }, [newImageFiles]);
+
+  React.useEffect(() => {
+    return () => {
+      newImagesRef.current.forEach((img: { file: File; preview: string }) => {
+        URL.revokeObjectURL(img.preview);
+      });
+      if (newAudioRef.current) {
+        URL.revokeObjectURL(newAudioRef.current.preview);
+      }
+    };
+  }, []);
+
+  const handleSelectNewAudio = (file: File) => {
+    if (newAudio) {
+      URL.revokeObjectURL(newAudio.preview);
+    }
+    setNewAudio({
+      file,
+      preview: URL.createObjectURL(file),
+    });
+    setAudioStartSeconds(0);
+  };
+
+  const handleRemoveNewAudio = () => {
+    if (newAudio) {
+      URL.revokeObjectURL(newAudio.preview);
+    }
+    setNewAudio(null);
+    if (existingAudio && !deletedMediaIds.includes(existingAudio.id)) {
+      setAudioStartSeconds(gift.audio_start_seconds || 0);
+    } else {
+      setAudioStartSeconds(0);
+    }
+  };
 
   // QR Data URL
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -194,12 +243,10 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
       .filter((s) => s.length > 0)
       .forEach((msg) => payload.append("storyMessages", msg));
 
-    deletedMediaIds.forEach((id) => payload.append("deletedMediaIds", id));
-    newImageFiles.forEach((item) => payload.append("newImages", item.file));
-
-    if (newAudioFile) {
-      payload.append("newAudio", newAudioFile);
+    if (newAudio) {
+      payload.append("newAudio", newAudio.file);
     }
+    payload.append("audioStartSeconds", audioStartSeconds.toFixed(2));
 
     startSaveTransition(async () => {
       const res = await updateGiftAction(payload);
@@ -209,6 +256,10 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
         setFeedback({ type: "success", text: "Đã lưu cập nhật thành công!" });
         setNewImageFiles([]);
         setDeletedMediaIds([]);
+        if (newAudio) {
+          URL.revokeObjectURL(newAudio.preview);
+          setNewAudio(null);
+        }
         setTimeout(() => setFeedback(null), 3000);
       }
     });
@@ -575,38 +626,50 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
               </div>
 
               {/* Audio Management */}
-              <div className="space-y-2 pt-2 border-t border-zinc-800/80">
-                <label className="text-xs font-medium uppercase tracking-wider text-zinc-300">
-                  Nhạc nền MP3
-                </label>
-                {newAudioFile ? (
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/80 border border-rose-500/40">
-                    <span className="text-xs text-rose-300">🎵 {newAudioFile.name} (File mới)</span>
-                    <button
-                      type="button"
-                      onClick={() => setNewAudioFile(null)}
-                      className="text-xs text-zinc-400 hover:text-rose-300"
-                    >
-                      Hủy
-                    </button>
-                  </div>
-                ) : existingAudio ? (
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/80 border border-zinc-800">
-                    <span className="text-xs text-zinc-300">🎵 Nhạc nền hiện tại đang hoạt động</span>
+              <div className="space-y-3 pt-2 border-t border-zinc-800/80">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-medium uppercase tracking-wider text-zinc-300">
+                    Nhạc nền MP3
+                  </label>
+                  {(newAudio || (existingAudio && !deletedMediaIds.includes(existingAudio.id))) && (
                     <label className="text-xs text-rose-400 hover:text-rose-300 cursor-pointer font-medium">
-                      Thay file khác
+                      + Thay file khác
                       <input
                         type="file"
                         accept="audio/mpeg,audio/mp3,.mp3"
                         className="hidden"
                         onChange={(e) => {
-                          if (e.target.files?.[0]) setNewAudioFile(e.target.files[0]);
+                          if (e.target.files?.[0]) handleSelectNewAudio(e.target.files[0]);
+                          e.target.value = "";
                         }}
                       />
                     </label>
-                  </div>
+                  )}
+                </div>
+
+                {newAudio ? (
+                  <AudioStartEditor
+                    audioSrc={newAudio.preview}
+                    audioName={`${newAudio.file.name} (File mới)`}
+                    value={audioStartSeconds}
+                    onChange={setAudioStartSeconds}
+                    onRemoveAudio={handleRemoveNewAudio}
+                    disabled={isSavePending}
+                  />
+                ) : existingAudio && !deletedMediaIds.includes(existingAudio.id) ? (
+                  <AudioStartEditor
+                    audioSrc={existingAudio.url}
+                    audioName="Nhạc nền hiện tại"
+                    value={audioStartSeconds}
+                    onChange={setAudioStartSeconds}
+                    onRemoveAudio={() => {
+                      setDeletedMediaIds((prev) => [...prev, existingAudio.id]);
+                      setAudioStartSeconds(0);
+                    }}
+                    disabled={isSavePending}
+                  />
                 ) : (
-                  <label className="w-full py-3 px-4 rounded-xl border border-dashed border-zinc-700 hover:border-rose-500/60 bg-zinc-900/40 flex items-center justify-center gap-2 text-xs text-zinc-400 hover:text-rose-400 cursor-pointer">
+                  <label className="w-full py-3.5 px-4 rounded-xl border border-dashed border-zinc-700 hover:border-rose-500/60 bg-zinc-900/40 flex items-center justify-center gap-2 text-xs text-zinc-400 hover:text-rose-400 cursor-pointer">
                     <span>🎵</span>
                     <span>Tải lên file nhạc MP3</span>
                     <input
@@ -614,7 +677,8 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
                       accept="audio/mpeg,audio/mp3,.mp3"
                       className="hidden"
                       onChange={(e) => {
-                        if (e.target.files?.[0]) setNewAudioFile(e.target.files[0]);
+                        if (e.target.files?.[0]) handleSelectNewAudio(e.target.files[0]);
+                        e.target.value = "";
                       }}
                     />
                   </label>

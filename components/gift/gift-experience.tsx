@@ -84,14 +84,16 @@ export function GiftExperience({ gift }: GiftExperienceProps) {
 
   return (
     <div className="min-h-screen w-full bg-[#050103] relative overflow-hidden">
-      {/* Background Audio Player (Independent of visual duration, restarts on replay) */}
+      {/* Background Audio Player (Starts from audio_start_seconds, restarts on replay) */}
       {audioMedia?.url && (
         <GiftAudioPlayer
           audioUrl={audioMedia.url}
           isPlaying={isPlaying}
+          startSeconds={gift.audio_start_seconds || 0}
           isMuted={isMuted}
           replayTrigger={replayCount}
           onToggleMute={handleToggleMute}
+          onTogglePlay={handleTogglePlay}
         />
       )}
 
