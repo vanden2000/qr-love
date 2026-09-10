@@ -4,8 +4,8 @@
  */
 
 export const IMAGE_OPTIMIZATION_CONFIG = {
-  MAX_DIMENSION: 1920,
-  QUALITY: 0.82,
+  MAX_DIMENSION: 1600,
+  QUALITY: 0.8,
   OUTPUT_TYPE: "image/webp" as const,
   OUTPUT_EXT: ".webp",
   ALLOWED_INPUT_TYPES: ["image/jpeg", "image/jpg", "image/png", "image/webp"],

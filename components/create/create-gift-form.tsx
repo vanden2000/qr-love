@@ -399,10 +399,12 @@ export function CreateGiftForm() {
         const errMsg = err instanceof Error ? err.message : "";
         if (
           errMsg.includes("was not found on the server") ||
-          errMsg.includes("Failed to find Server Action")
+          errMsg.includes("Failed to find Server Action") ||
+          errMsg.includes("unexpected response") ||
+          errMsg.includes("Failed to fetch")
         ) {
           setError(
-            "Hệ thống vừa được cập nhật phiên bản mới. Vui lòng tải lại trang (F5) để tiếp tục."
+            "Hệ thống vừa được cập nhật phiên bản mới. Vui lòng bấm F5 (Tải lại trang) để đồng bộ và tiếp tục nhé!"
           );
         } else {
           setError(
