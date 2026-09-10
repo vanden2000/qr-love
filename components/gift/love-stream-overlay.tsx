@@ -34,11 +34,11 @@ export function LoveStreamOverlay({
       }}
     >
       <style jsx>{`
-        /* Slow, Silky-smooth Continuous 3D Waterfall Rain Motion from Top to Bottom */
+        /* Continuous, Steady Linear 3D Waterfall Flow from Top to Bottom */
         @keyframes loveStreamWaterfall {
           0% {
             transform: translate3d(
-                calc(-50% + var(--flow-x-drift) * -0.2),
+                calc(-50% + var(--flow-x-drift) * -0.15),
                 var(--flow-y-start),
                 var(--flow-z-depth)
               )
@@ -46,38 +46,32 @@ export function LoveStreamOverlay({
               rotateZ(var(--flow-rot-z))
               rotateY(var(--flow-rot-y));
             opacity: 0;
+            visibility: visible;
           }
-          15% {
+          8% {
             opacity: var(--flow-opacity-focus);
           }
-          50% {
-            transform: translate3d(
-                -50%,
-                46vh,
-                calc(var(--flow-z-depth) * 1.04)
-              )
-              scale(var(--flow-scale-focus))
-              rotateZ(calc(var(--flow-rot-z) * 0.3))
-              rotateY(0deg);
+          70% {
             opacity: var(--flow-opacity-focus);
           }
-          85% {
-            opacity: var(--flow-opacity-focus);
+          88% {
+            opacity: 0;
           }
           100% {
             transform: translate3d(
-                calc(-50% + var(--flow-x-drift) * 0.2),
+                calc(-50% + var(--flow-x-drift) * 0.15),
                 var(--flow-y-end),
-                calc(var(--flow-z-depth) * 1.12)
+                calc(var(--flow-z-depth) * 1.08)
               )
               scale(var(--flow-scale-end))
               rotateZ(var(--flow-rot-z))
               rotateY(var(--flow-rot-y));
             opacity: 0;
+            visibility: hidden;
           }
         }
 
-        /* Final Journey Card: Fades and settles in at 30.0s */
+        /* Final Journey Card: Fades and settles in at 120.0s */
         @keyframes loveFinalCardSettle {
           0% {
             transform: translate3d(-50%, -45%, 30px) scale(0.9);
@@ -91,7 +85,7 @@ export function LoveStreamOverlay({
 
         .anim-stream-waterfall {
           animation-name: loveStreamWaterfall;
-          animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
+          animation-timing-function: linear;
           animation-fill-mode: forwards;
           will-change: transform, opacity;
         }
@@ -247,15 +241,19 @@ export function LoveStreamOverlay({
 
         const isShort = (event.text || "").length <= 12;
 
+        const isOuterLane = Math.abs(event.xPercent) >= 20;
+
         return (
           <div
             key={event.id}
             className={`absolute top-0 anim-stream-waterfall opacity-0 text-center pointer-events-none flex items-center justify-center ${
-              isForeground
+              isOuterLane
+                ? "max-w-[38vw] sm:max-w-[170px]"
+                : isForeground
                 ? "max-w-[74vw] sm:max-w-[340px]"
                 : isPrimary
-                ? "max-w-[68vw] sm:max-w-[300px]"
-                : "max-w-[190px]"
+                ? "max-w-[65vw] sm:max-w-[290px]"
+                : "max-w-[48vw] sm:max-w-[200px]"
             }`}
             style={animCustomProps}
           >
