@@ -17,8 +17,8 @@ import {
   OccasionType,
   PronounType,
   RELATIONSHIP_OPTIONS,
-  OCCASION_OPTIONS,
   PRONOUN_OPTIONS,
+  getOccasionsForRelationship,
   getPresetSuggestion,
 } from "@/lib/presets/occasions";
 
@@ -39,7 +39,7 @@ export function CreateGiftForm() {
 
   // Relationship & Occasion & Pronouns States
   const [relationship, setRelationship] = useState<RelationshipType>("COUPLE");
-  const [occasion, setOccasion] = useState<OccasionType>("ANNIVERSARY");
+  const [occasion, setOccasion] = useState<OccasionType>("LOVE_ANNIVERSARY");
   const [pronoun, setPronoun] = useState<PronounType>("HE_TO_SHE");
 
   const currentPreset = getPresetSuggestion(relationship, occasion, pronoun);
@@ -112,8 +112,11 @@ export function CreateGiftForm() {
   };
 
   const handleRelationshipChange = (newRel: RelationshipType) => {
+    const available = getOccasionsForRelationship(newRel);
+    const nextOcc = available[0]?.value || ("LOVE_ANNIVERSARY" as OccasionType);
     setRelationship(newRel);
-    handleApplyPreset(newRel, occasion, pronoun);
+    setOccasion(nextOcc);
+    handleApplyPreset(newRel, nextOcc, pronoun);
   };
 
   const handleOccasionChange = (newOcc: OccasionType) => {
@@ -496,7 +499,7 @@ export function CreateGiftForm() {
               disabled={isPending}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-100 focus:outline-none focus:border-rose-500"
             >
-              {OCCASION_OPTIONS.map((opt) => (
+              {getOccasionsForRelationship(relationship).map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.icon} {opt.label}
                 </option>

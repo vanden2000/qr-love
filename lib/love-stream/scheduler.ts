@@ -104,7 +104,14 @@ export function generateLoveStreamSchedule({
   const pro = (gift.pronoun_type as PronounType) || "HE_TO_SHE";
   const preset = getPresetSuggestion(rel, occ, pro);
 
-  let anniversaryLabel = occ === "BIRTHDAY" ? "Happy Birthday" : "Happy Anniversary";
+  let anniversaryLabel =
+    occ === "BIRTHDAY_LOVER" ||
+    occ === "FRIEND_BIRTHDAY" ||
+    occ === "CRUSH_BIRTHDAY" ||
+    occ === "PARENTS_BIRTHDAY" ||
+    (occ as string) === "BIRTHDAY"
+      ? "Happy Birthday"
+      : "Happy Anniversary";
   let anniversarySubtitle: string | undefined = undefined;
   if (gift.start_date) {
     const startTime = new Date(gift.start_date).getTime();
