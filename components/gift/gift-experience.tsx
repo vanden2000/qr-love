@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import type { GiftWithMedia } from "@/types/gift";
 import { GiftIntro } from "@/components/gift/gift-intro";
 import { GiftContent } from "@/components/gift/gift-content";
 import { GiftAudioPlayer } from "@/components/gift/gift-audio-player";
 import { LoveScene } from "@/components/three/love-scene";
-import { MobileStoryStream } from "@/components/gift/mobile-story-stream";
-import { SCENE_DURATION, getTimelineChapter } from "@/components/three/scene-timeline";
+import { LoveStreamOverlay } from "@/components/gift/love-stream-overlay";
+import { generateLoveStreamSchedule } from "@/lib/love-stream/scheduler";
+import { SCENE_DURATION } from "@/components/three/scene-timeline";
 
 interface GiftExperienceProps {
   gift: GiftWithMedia;
@@ -19,91 +20,71 @@ export function GiftExperience({ gift }: GiftExperienceProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showLetter, setShowLetter] = useState(false);
-  const [timelineTime, setTimelineTime] = useState(0);
   const [replayCount, setReplayCount] = useState(0);
-  const [isMobileView, setIsMobileView] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
 
-  const lastFrameTimeRef = useRef<number | null>(null);
-
-  // Detect Mobile Viewport (Width <= 640 or Portrait Aspect Ratio)
-  useEffect(() => {
-    const handleResize = () => {
-      const isMobile =
-        window.innerWidth <= 640 ||
-        window.innerWidth / Math.max(1, window.innerHeight) < 0.8;
-      setIsMobileView(isMobile);
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize, { passive: true });
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const finishTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Extract background audio media if present
   const audioMedia = gift.media?.find((item) => item.type === "audio");
 
-  // 1. Timeline progression ticker (0 to 65s)
+  // Precompute deterministic 30s schedule once per (gift + replayCount)
+  // ZERO 60fps React re-renders!
+  const streamEvents = useMemo(() => {
+    return generateLoveStreamSchedule({
+      gift,
+      replayCount,
+    });
+  }, [gift, replayCount]);
+
+  // Handle 30-Second visual duration finish trigger
   useEffect(() => {
     if (!isOpened || !isPlaying) {
-      lastFrameTimeRef.current = null;
+      if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
       return;
     }
 
-    let animationFrameId: number;
-
-    const tick = (currentTime: number) => {
-      if (lastFrameTimeRef.current !== null) {
-        const deltaSeconds = (currentTime - lastFrameTimeRef.current) / 1000;
-        setTimelineTime((prev) => {
-          const next = prev + deltaSeconds;
-          return Math.min(SCENE_DURATION, next);
-        });
-      }
-      lastFrameTimeRef.current = currentTime;
-      animationFrameId = requestAnimationFrame(tick);
-    };
-
-    animationFrameId = requestAnimationFrame(tick);
+    // Set finished flag at 30 seconds to reveal final action controls
+    finishTimerRef.current = setTimeout(() => {
+      setIsFinished(true);
+    }, SCENE_DURATION * 1000);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
     };
-  }, [isOpened, isPlaying]);
+  }, [isOpened, isPlaying, replayCount]);
 
-  // 2. Open Gift handler
+  // 1. Open Gift handler
   const handleOpenGift = () => {
     setIsPlaying(true);
     setIsExitingIntro(true);
 
     setTimeout(() => {
       setIsOpened(true);
-      setTimelineTime(0);
-    }, 650);
+      setIsFinished(false);
+    }, 600);
   };
 
-  // 3. Play / Pause toggle
+  // 2. Play / Pause toggle
   const handleTogglePlay = () => {
     setIsPlaying((prev) => !prev);
   };
 
-  // 4. Mute / Unmute toggle
+  // 3. Mute / Unmute toggle
   const handleToggleMute = () => {
     setIsMuted((prev) => !prev);
   };
 
-  // 5. Replay handler
+  // 4. Replay handler (Increments replayCount, resets visual schedule with new variation, restarts audio)
   const handleReplay = () => {
-    setTimelineTime(0);
+    setIsFinished(false);
     setIsPlaying(true);
     setReplayCount((prev) => prev + 1);
   };
 
-  const currentChapter = getTimelineChapter(timelineTime);
-  const isConfessionChapter = currentChapter === "CONFESSION";
-
   return (
-    <div className="min-h-screen w-full bg-zinc-950 relative overflow-hidden">
-      {/* Background Audio Player (Preserved across all views) */}
+    <div className="min-h-screen w-full bg-[#050103] relative overflow-hidden">
+      {/* Background Audio Player (Independent of visual duration, restarts on replay) */}
       {audioMedia?.url && (
         <GiftAudioPlayer
           audioUrl={audioMedia.url}
@@ -114,7 +95,7 @@ export function GiftExperience({ gift }: GiftExperienceProps) {
         />
       )}
 
-      {/* Intro Screen */}
+      {/* 1. Intro Screen */}
       {!isOpened && (
         <GiftIntro
           gift={gift}
@@ -123,30 +104,30 @@ export function GiftExperience({ gift }: GiftExperienceProps) {
         />
       )}
 
-      {/* 3D Love Scene Experience */}
+      {/* 2. 30-Second Love Stream Experience */}
       {isOpened && (
         <>
-          {/* 3D Canvas Layer (Hearts, Stardust, Photos, Cinematic Lighting) */}
+          {/* WebGL Canvas Background: 4-Tier 3D Heart Waterfall, Stardust & Lighting */}
           <LoveScene
             gift={gift}
-            timelineTime={timelineTime}
+            isPaused={!isPlaying}
             fallbackContent={<GiftContent gift={gift} />}
           />
 
-          {/* Hybrid 2.5D Mobile Story Stream Layer (Crystal-Clear HTML Text) */}
-          {isMobileView && (
-            <MobileStoryStream
-              gift={gift}
-              timelineTime={timelineTime}
-            />
-          )}
+          {/* High-DPI HTML/CSS Love Stream Overlay: Primary Messages, Photo Cards & Ambient Pills */}
+          <LoveStreamOverlay
+            events={streamEvents}
+            started={isOpened}
+            replayTrigger={replayCount}
+            isPaused={!isPlaying}
+          />
 
-          {/* Discreet Mobile-Safe Floating Control Bar */}
+          {/* Floating Control Bar (Discreet during stream, prominent after 30s finish) */}
           <div
-            className={`fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 sm:gap-2 p-1 sm:p-1.5 rounded-full bg-zinc-950/75 hover:bg-zinc-950/95 border border-zinc-800/80 backdrop-blur-md shadow-2xl transition-opacity duration-500 ${
-              isConfessionChapter
-                ? "opacity-35 hover:opacity-100"
-                : "opacity-60 hover:opacity-100"
+            className={`fixed bottom-5 sm:bottom-7 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 p-1.5 rounded-full bg-zinc-950/80 hover:bg-zinc-950/95 border border-rose-500/30 backdrop-blur-md shadow-2xl transition-all duration-700 ${
+              isFinished
+                ? "opacity-100 scale-100 ring-2 ring-rose-500/40"
+                : "opacity-45 hover:opacity-90 scale-95"
             }`}
           >
             {/* Play / Pause Toggle */}
@@ -154,7 +135,7 @@ export function GiftExperience({ gift }: GiftExperienceProps) {
               type="button"
               onClick={handleTogglePlay}
               aria-label={isPlaying ? "Tạm dừng" : "Tiếp tục"}
-              className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-zinc-300 hover:text-white hover:bg-zinc-800/80 active:scale-95 transition-all"
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-zinc-300 hover:text-white hover:bg-zinc-800/80 active:scale-95 transition-all cursor-pointer"
               title={isPlaying ? "Tạm dừng" : "Tiếp tục"}
             >
               <span className="text-xs sm:text-sm">{isPlaying ? "⏸" : "▶"}</span>
@@ -164,36 +145,38 @@ export function GiftExperience({ gift }: GiftExperienceProps) {
             <button
               type="button"
               onClick={handleReplay}
-              aria-label="Phát lại từ đầu"
-              className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-zinc-300 hover:text-white hover:bg-zinc-800/80 active:scale-95 transition-all"
-              title="Phát lại từ đầu"
+              aria-label="Xem lại từ đầu"
+              className="px-3.5 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5 text-zinc-200 hover:text-white bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/50 active:scale-95 transition-all text-xs font-medium cursor-pointer"
+              title="Xem lại từ đầu"
             >
-              <span className="text-xs sm:text-sm">↺</span>
+              <span>↺</span>
+              <span>Xem lại</span>
             </button>
 
             <div className="w-[1px] h-4 sm:h-5 bg-zinc-800 mx-0.5" />
 
-            {/* Switch between 3D Space & Full Letter */}
+            {/* Switch to Full Letter Modal */}
             <button
               type="button"
               onClick={() => setShowLetter((prev) => !prev)}
-              className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[11px] sm:text-xs font-medium text-zinc-200 bg-rose-950/40 hover:bg-rose-950/70 border border-rose-800/40 active:scale-95 transition-all min-h-[40px] sm:min-h-[44px] flex items-center gap-1"
+              className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-medium text-zinc-200 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/60 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              <span>{showLetter ? "🌌 3D Space" : "Đọc thư"}</span>
+              <span>📖</span>
+              <span>{showLetter ? "Không gian 3D" : "Đọc thư"}</span>
             </button>
           </div>
 
-          {/* Letter / Gallery Overlay */}
+          {/* Letter / Gallery Overlay Modal */}
           {showLetter && (
-            <div className="fixed inset-0 z-50 overflow-y-auto bg-zinc-950/90 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-zinc-950/95 backdrop-blur-md animate-in fade-in duration-300">
               <GiftContent gift={gift} />
               <div className="fixed top-4 left-4 sm:top-5 sm:left-5 z-50">
                 <button
                   type="button"
                   onClick={() => setShowLetter(false)}
-                  className="px-4 py-2 rounded-full bg-zinc-900/90 border border-zinc-700 text-zinc-200 text-xs font-medium hover:bg-zinc-800 transition-colors min-h-[44px]"
+                  className="px-4 py-2 rounded-full bg-zinc-900/90 border border-zinc-700 text-zinc-200 text-xs font-medium hover:bg-zinc-800 transition-colors min-h-[44px] cursor-pointer"
                 >
-                  ← Trở về không gian 3D
+                  ← Trở về dòng ký ức
                 </button>
               </div>
             </div>

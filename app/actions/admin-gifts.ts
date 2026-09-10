@@ -3,10 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { optimizeImageFile, IMAGE_OPTIMIZATION_CONFIG } from "@/lib/media/optimizeImage";
+import { optimizeImageFile } from "@/lib/media/optimizeImage";
 import type { ActionResponse, GiftStatus } from "@/types/gift";
 
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_AUDIO_SIZE = 15 * 1024 * 1024; // 15MB
 const MAX_IMAGES_COUNT = 5;
 

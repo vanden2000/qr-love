@@ -7,35 +7,10 @@ import { LoveCamera } from "@/components/three/love-camera";
 import { CinematicLighting } from "@/components/three/cinematic-lighting";
 import { HeartParticles } from "@/components/three/heart-particles";
 import { StardustParticles } from "@/components/three/stardust-particles";
-import { FloatingTexts } from "@/components/three/floating-texts";
-import { PhotoGallery3D } from "@/components/three/photo-gallery-3d";
-import { EndingMessage } from "@/components/three/ending-message";
 import { SceneEffects } from "@/components/three/effects";
 import { SceneLoader } from "@/components/three/scene-loader";
 import { useAdaptivePerformance } from "@/components/three/adaptive-perf";
-
-import { useFrame, useThree } from "@react-three/fiber";
-
-function WebGLDiagnostics() {
-  const { gl } = useThree();
-  const lastLogRef = React.useRef(0);
-
-  useFrame(() => {
-    if (process.env.NODE_ENV !== "development") return;
-    const now = performance.now();
-    if (now - lastLogRef.current > 5000) {
-      lastLogRef.current = now;
-      console.log("[WebGL Diagnostics (Throttled 5s)]", {
-        textures: gl.info.memory.textures,
-        geometries: gl.info.memory.geometries,
-        renderCalls: gl.info.render.calls,
-        triangles: gl.info.render.triangles,
-      });
-    }
-  });
-
-  return null;
-}
+import { useThree } from "@react-three/fiber";
 
 function ContextLossManager({
   onContextLost,
@@ -99,27 +74,20 @@ class WebGLErrorBoundary extends Component<
 
 interface LoveSceneProps {
   gift: GiftWithMedia;
-  timelineTime: number;
+  isPaused?: boolean;
   fallbackContent?: React.ReactNode;
 }
 
 export function LoveScene({
-  gift,
-  timelineTime,
+  isPaused = false,
   fallbackContent,
 }: LoveSceneProps) {
   const perf = useAdaptivePerformance();
   const [hasContextLost, setHasContextLost] = React.useState(false);
 
   const handleContextLost = React.useCallback(() => {
-    if (process.env.NODE_ENV === "development") {
-      console.warn(
-        `[WebGL Diagnostic] Context Lost detected at timelineTime: ${timelineTime}s`
-      );
-    } else {
-      setHasContextLost(true);
-    }
-  }, [timelineTime]);
+    setHasContextLost(true);
+  }, []);
 
   if (hasContextLost) {
     return <>{fallbackContent}</>;
@@ -127,11 +95,11 @@ export function LoveScene({
 
   return (
     <WebGLErrorBoundary fallback={<>{fallbackContent}</>}>
-      <div className="fixed inset-0 z-20 w-full h-full bg-zinc-950 overflow-hidden select-none">
+      <div className="fixed inset-0 z-20 w-full h-full bg-[#050103] overflow-hidden select-none">
         <Suspense fallback={<SceneLoader />}>
           <Canvas
             dpr={perf.dpr}
-            camera={{ position: [0, 0, 10], fov: 60 }}
+            camera={{ position: [0, 0, 8.5], fov: 58 }}
             gl={{
               antialias: true,
               alpha: false,
@@ -142,39 +110,26 @@ export function LoveScene({
             }}
             className="w-full h-full"
           >
-            {/* Stable Context Loss Manager with clean removeEventListener on unmount */}
             <ContextLossManager onContextLost={handleContextLost} />
 
-            {/* Cinematic Background Atmosphere (Deep Burgundy Night) */}
-            <color attach="background" args={["#0c0207"]} />
+            {/* Deep Burgundy & Cosmic Midnight Atmosphere */}
+            <color attach="background" args={["#080104"]} />
+            <fog attach="fog" args={["#080104", 8, 38]} />
 
-            {/* Depth Fog: Objects gently fade into romantic mist */}
-            <fog attach="fog" args={["#0c0207", 10, 50]} />
+            {/* Dynamic 3D Cinematic Lighting */}
+            <CinematicLighting timelineTime={0} />
 
-            {/* Throttled Diagnostics logger (Dev only) */}
-            {process.env.NODE_ENV === "development" && <WebGLDiagnostics />}
+            {/* Smooth Breathing Camera */}
+            <LoveCamera timelineTime={0} />
 
-            {/* Dynamic 5-Chapter Cinematic Lighting Setup */}
-            <CinematicLighting timelineTime={timelineTime} />
+            {/* Ambient Cosmic Stardust */}
+            <StardustParticles count={perf.stardustCount} />
 
-            {/* Timeline-driven Smooth Camera Trajectory */}
-            <LoveCamera timelineTime={timelineTime} />
-
-            {/* Visual Layers focused purely on Heart Stream & Messages */}
-            <StardustParticles
-              count={perf.stardustCount}
-              timelineTime={timelineTime}
-            />
+            {/* 4-Tier 3D Heart Waterfall Stream */}
             <HeartParticles
               count={perf.heartCount}
-              timelineTime={timelineTime}
+              isPaused={isPaused}
             />
-            <PhotoGallery3D
-              media={gift.media}
-              timelineTime={timelineTime}
-            />
-            <FloatingTexts gift={gift} timelineTime={timelineTime} />
-            <EndingMessage gift={gift} timelineTime={timelineTime} />
 
             {/* Adaptive Post-Processing Bloom */}
             <SceneEffects
