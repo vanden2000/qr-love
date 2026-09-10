@@ -44,6 +44,12 @@ export default async function AdminLayout({
               >
                 Dashboard
               </Link>
+              <Link
+                href="/admin/stream-phrases"
+                className="hover:text-zinc-100 transition-colors"
+              >
+                Bộ câu 3D
+              </Link>
             </nav>
           </div>
 

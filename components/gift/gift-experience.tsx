@@ -114,12 +114,14 @@ export function GiftExperience({ gift }: GiftExperienceProps) {
             fallbackContent={<GiftContent gift={gift} />}
           />
 
-          {/* High-DPI HTML/CSS Love Stream Overlay: Primary Messages, Photo Cards & Ambient Pills */}
+          {/* High-DPI HTML/CSS Love Stream Overlay: Primary Messages, Photo Cards & Final Card */}
           <LoveStreamOverlay
             events={streamEvents}
             started={isOpened}
             replayTrigger={replayCount}
             isPaused={!isPlaying}
+            onOpenLetter={() => setShowLetter(true)}
+            onReplay={handleReplay}
           />
 
           {/* Floating Control Bar (Ultra-discreet 0.25 during stream, prominent after 30s finish) */}

@@ -41,9 +41,18 @@ export function GiftContent({ gift }: GiftContentProps) {
             </h1>
           </div>
 
-          {/* Letter Message */}
-          <div className="text-sm leading-relaxed text-zinc-200 whitespace-pre-wrap font-light tracking-wide py-1">
-            {gift.message}
+          {/* Letter Message & Story Paragraphs */}
+          <div className="text-sm sm:text-base leading-relaxed text-zinc-200 whitespace-pre-wrap font-light tracking-wide py-1 space-y-4">
+            {gift.message && <p>{gift.message}</p>}
+            {gift.story_messages && gift.story_messages.length > 0 && (
+              <div className="space-y-3 pt-2">
+                {gift.story_messages.map((sm, idx) => (
+                  <p key={sm.id || idx} className="text-zinc-200/95">
+                    {sm.content}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Image Gallery (if any) */}

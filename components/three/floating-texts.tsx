@@ -47,22 +47,20 @@ export function FloatingTexts({ gift, timelineTime }: FloatingTextsProps) {
       }
     }
 
-    // 2. Extract user-defined story messages (up to 10) or derive from message
-    const storyList =
-      gift.story_messages && gift.story_messages.length > 0
-        ? gift.story_messages.map((m) => m.content.trim()).filter(Boolean)
-        : gift.message
-            .split(/[.\n;!?]+/)
-            .map((s) => s.trim())
-            .filter((s) => s.length >= 3);
-
-    const userMessages =
-      storyList.length > 0
-        ? storyList.slice(0, 10)
+    // 2. Extract admin stream phrases (strictly NO gift.message or gift.story_messages)
+    const availablePhrases =
+      gift.stream_phrases && gift.stream_phrases.length > 0
+        ? gift.stream_phrases.map((p) => (typeof p === "string" ? p.trim() : (p as { content: string }).content?.trim())).filter(Boolean)
         : [
-            "Cảm ơn em vì đã xuất hiện và làm thế giới dịu dàng hơn",
-            "Mỗi khoảnh khắc ở cạnh em đều là điều bình yên nhất",
+            "Anh yêu em",
+            "Cố lên nhé",
+            "Em làm được mà",
+            "Anh luôn ở đây",
+            "Tự hào về em",
+            "Luôn tin vào em",
           ];
+
+    const userMessages = availablePhrases.slice(0, 8);
 
     // 3. Assemble curated text moments across 5 chapters
     const items: TimedTextItem[] = [

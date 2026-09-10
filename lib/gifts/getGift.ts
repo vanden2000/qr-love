@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { GiftWithMedia, GiftMedia, GiftMessage } from "@/types/gift";
+import { getActiveStreamPhrases } from "@/lib/phrases/getStreamPhrases";
 
 /**
  * Normalizes and resolves the full public storage URL for a media item.
@@ -30,7 +31,6 @@ function deriveStoryMessagesFromText(rawText: string): GiftMessage[] {
     return [{ content: rawText.slice(0, 140), sort_order: 0 }];
   }
 
-  // Cap between 1 and 8 messages, max 140 chars each
   return sentences.slice(0, 8).map((sentence, idx) => ({
     content: sentence.length > 150 ? sentence.slice(0, 147) + "..." : sentence,
     sort_order: idx,
@@ -53,7 +53,7 @@ export async function getGiftBySlug(
     const supabase = createAdminClient();
     const { data: giftData, error: giftError } = await supabase
       .from("gifts")
-      .select("id, slug, sender_name, receiver_name, title, message, start_date, status, created_at")
+      .select("id, slug, sender_name, receiver_name, title, message, start_date, status, stream_phrase_category_id, created_at")
       .eq("slug", slug.trim())
       .maybeSingle();
 
@@ -70,6 +70,9 @@ export async function getGiftBySlug(
     if (!options?.allowAnyStatus && giftData.status !== "active") {
       return null;
     }
+
+    // Fetch active stream phrases for 3D experience
+    const streamPhrases = await getActiveStreamPhrases(giftData.stream_phrase_category_id);
 
     // Fetch associated media
     const { data: mediaData, error: mediaError } = await supabase
@@ -93,7 +96,6 @@ export async function getGiftBySlug(
 
         const publicUrl = getPublicStorageUrl(bucket, relativePath);
 
-        // Try creating signed URL (valid for 30 days) to handle both private and public buckets
         let finalUrl = publicUrl;
         try {
           const { data: signedData, error: signedError } =
@@ -115,7 +117,7 @@ export async function getGiftBySlug(
       })
     );
 
-    // Fetch user-defined story messages from gift_messages table if exists
+    // Fetch user-defined story messages from gift_messages table for Letter View
     let storyMessages: GiftMessage[] = [];
     try {
       const { data: msgData, error: msgError } = await supabase
@@ -137,6 +139,7 @@ export async function getGiftBySlug(
       ...giftData,
       media: resolvedMedia,
       story_messages: storyMessages,
+      stream_phrases: streamPhrases,
     } as GiftWithMedia;
   } catch (err) {
     console.error("Unexpected error in getGiftBySlug:", err);
@@ -161,7 +164,7 @@ export async function getAllGiftsForAdmin(
 
     let query = supabase
       .from("gifts")
-      .select("id, slug, sender_name, receiver_name, title, message, start_date, status, created_at, updated_at")
+      .select("id, slug, sender_name, receiver_name, title, message, start_date, status, stream_phrase_category_id, created_at, updated_at")
       .order("created_at", { ascending: false });
 
     if (options?.status && ["active", "draft", "hidden"].includes(options.status)) {

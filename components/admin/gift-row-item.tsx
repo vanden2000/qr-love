@@ -37,6 +37,7 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
     message: gift.message || "",
     startDate: gift.start_date || "",
     status: gift.status || "draft",
+    streamPhraseCategoryId: gift.stream_phrase_category_id || "a1111111-1111-1111-1111-111111111111",
   });
 
   const [storyMessages, setStoryMessages] = useState<string[]>(
@@ -184,6 +185,9 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
     payload.append("message", formData.message.trim());
     if (formData.startDate) payload.append("startDate", formData.startDate);
     payload.append("status", formData.status);
+    if (formData.streamPhraseCategoryId) {
+      payload.append("streamPhraseCategoryId", formData.streamPhraseCategoryId);
+    }
 
     storyMessages
       .map((s) => s.trim())
@@ -378,6 +382,39 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
                 />
               </div>
 
+              {/* 3D Stream Phrases Category Selector */}
+              <div className="space-y-1.5 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800">
+                <label className="text-xs font-semibold uppercase tracking-wider text-rose-300 flex items-center gap-1.5">
+                  <span>💬 Bộ câu hiển thị trong không gian 3D</span>
+                </label>
+                <select
+                  value={formData.streamPhraseCategoryId}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      streamPhraseCategoryId: e.target.value,
+                    }))
+                  }
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-100 focus:outline-none focus:border-rose-500"
+                >
+                  <option value="a1111111-1111-1111-1111-111111111111">
+                    ❤️ Yêu thương (Anh yêu em, Thương em nhiều lắm, Có em là đủ...)
+                  </option>
+                  <option value="a2222222-2222-2222-2222-222222222222">
+                    💪 Cổ vũ (Cố lên nhé, Em làm được mà, Đừng bỏ cuộc nha...)
+                  </option>
+                  <option value="a3333333-3333-3333-3333-333333333333">
+                    🌟 Động viên (Anh luôn ở đây, Mọi chuyện rồi sẽ ổn, Bình yên rồi sẽ đến...)
+                  </option>
+                  <option value="a4444444-4444-4444-4444-444444444444">
+                    🍃 Chữa lành (Không sao đâu, Chậm lại một chút nhé, Hãy thương lấy mình...)
+                  </option>
+                </select>
+                <p className="text-[11px] text-zinc-400">
+                  Các câu ngắn thuộc bộ này sẽ xuất hiện ngẫu nhiên trong không gian 3D. Lời nhắn riêng chỉ hiển thị trong phần &ldquo;Đọc thư&rdquo;.
+                </p>
+              </div>
+
               <Textarea
                 label="Bức thư trọn vẹn (Dành cho trang Đọc Thư)"
                 rows={4}
@@ -388,13 +425,13 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
                 required
               />
 
-              {/* Story Messages Section */}
+              {/* Story Messages Section (Personal Letter View Only) */}
               <div className="space-y-2 pt-2">
                 <div className="flex justify-between items-center">
                   <label className="text-xs font-medium uppercase tracking-wider text-rose-300/90">
-                    ✨ Lời nhắn trôi trong không gian ({storyMessages.length}/10)
+                    💌 Lời nhắn trong thư ({storyMessages.length}/10)
                   </label>
-                  <span className="text-[11px] text-zinc-500">• Tối đa 160 ký tự/câu</span>
+                  <span className="text-[11px] text-zinc-500">• Chỉ người nhận thấy khi mở thư</span>
                 </div>
 
                 <div className="space-y-2">
@@ -410,7 +447,7 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
                         type="text"
                         value={msg}
                         maxLength={160}
-                        placeholder={`Lời nhắn ${idx + 1}...`}
+                        placeholder={`Đoạn thư ${idx + 1}...`}
                         onChange={(e) => handleStoryMessageChange(idx, e.target.value)}
                         className="flex-1 bg-transparent text-xs text-zinc-100 focus:outline-none"
                       />
@@ -432,7 +469,7 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
                       onClick={handleAddStoryMessage}
                       className="w-full py-2 px-3 rounded-xl border border-dashed border-zinc-800 hover:border-rose-500/50 text-xs text-rose-300/80 hover:text-rose-200 transition-colors"
                     >
-                      + Thêm câu lời nhắn
+                      + Thêm đoạn thư
                     </button>
                   )}
                 </div>

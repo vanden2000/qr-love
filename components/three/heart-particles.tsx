@@ -15,8 +15,9 @@ interface HeartData {
   swayAmp: number;
   phase: number;
   tiltSpeed: number;
+  rotSpeedY: number;
   colorHex: string;
-  tier: "bg" | "mid" | "near" | "fg";
+  tier: "distant" | "mid" | "near" | "fg";
 }
 
 interface HeartParticlesProps {
@@ -25,79 +26,89 @@ interface HeartParticlesProps {
 }
 
 const HEART_PALETTE = [
-  "#9F1239", // Deep rose ruby
+  "#9F1239", // Deep ruby rose
   "#BE123C", // Ruby crimson
   "#E11D48", // Vibrant rose
-  "#F43F5E", // Romantic pink rose
-  "#FB7185", // Soft glow rose
-  "#FDA4AF", // Tender rose glow
+  "#F43F5E", // Glossy pink ruby
+  "#FB7185", // Romantic soft rose
 ];
 
 export function HeartParticles({
-  count = 72,
+  count = 42,
   isPaused = false,
 }: HeartParticlesProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
-  // 1. Create a 2D smooth heart shape geometry centered at origin
+  // 1. Create a true 3D smooth extruded heart geometry with rounded bevels
   const heartGeometry = useMemo(() => {
     const shape = new THREE.Shape();
-    shape.moveTo(0, 0.22);
+    shape.moveTo(0, 0.24);
     shape.bezierCurveTo(0, 0.48, -0.42, 0.72, -0.72, 0.72);
-    shape.bezierCurveTo(-1.12, 0.72, -1.12, 0.36, -1.12, 0.36);
-    shape.bezierCurveTo(-1.12, 0.05, -0.86, -0.32, 0, -0.82);
-    shape.bezierCurveTo(0.86, -0.32, 1.12, 0.05, 1.12, 0.36);
-    shape.bezierCurveTo(1.12, 0.36, 1.12, 0.72, 0.72, 0.72);
-    shape.bezierCurveTo(0.42, 0.72, 0, 0.48, 0, 0.22);
+    shape.bezierCurveTo(-1.08, 0.72, -1.08, 0.38, -1.08, 0.38);
+    shape.bezierCurveTo(-1.08, 0.08, -0.82, -0.28, 0, -0.78);
+    shape.bezierCurveTo(0.82, -0.28, 1.08, 0.08, 1.08, 0.38);
+    shape.bezierCurveTo(1.08, 0.38, 1.08, 0.72, 0.72, 0.72);
+    shape.bezierCurveTo(0.42, 0.72, 0, 0.48, 0, 0.24);
 
-    const geom = new THREE.ShapeGeometry(shape, 8);
+    const extrudeSettings: THREE.ExtrudeGeometryOptions = {
+      depth: 0.16,
+      bevelEnabled: true,
+      bevelSegments: 3,
+      steps: 1,
+      bevelSize: 0.05,
+      bevelThickness: 0.05,
+      curveSegments: 16,
+    };
+
+    const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     geom.center();
+    geom.computeVertexNormals();
     return geom;
   }, []);
 
-  // 2. Precompute 4-tier deterministic particles (Distant, Mid, Near, Giant Foreground Pass)
+  // 2. Precompute layered 4-tier particles (Distant: 16, Mid: 16, Near: 8, Foreground: 2)
   const particles = useMemo<HeartData[]>(() => {
-    const rng = createSeededRNG("heart-perspective-field-seed-504");
+    const rng = createSeededRNG("ruby-heart-field-seed-2026");
     const list: HeartData[] = [];
 
-    const fgCount = 5; // Giant foreground swoops
-    const nearCount = 14; // Near layer
-    const bgCount = 26; // Distant layer
-    const midCount = count - fgCount - nearCount - bgCount; // Mid layer
+    const fgCount = 2; // Foreground accents (1-3)
+    const nearCount = 8; // Near layer (6-10)
+    const distantCount = 16; // Distant layer (12-18)
+    const midCount = Math.max(12, count - fgCount - nearCount - distantCount); // Mid layer (12-18)
 
-    const generateParticle = (tier: "bg" | "mid" | "near" | "fg"): HeartData => {
+    const generateParticle = (tier: "distant" | "mid" | "near" | "fg"): HeartData => {
       let z: number;
       let scale: number;
       let fallSpeed: number;
       let baseX: number;
 
       if (tier === "fg") {
-        // Giant Foreground pass (Z: +4.0 to +7.0) — Massive swooping elements!
-        z = 4.0 + rng() * 3.0;
-        scale = 0.75 + rng() * 0.65; // Massive size 0.75 - 1.40!
-        fallSpeed = 3.2 + rng() * 1.8;
+        // Foreground (Z: +3.8 to +5.5) — Slow passing accent
+        z = 3.8 + rng() * 1.7;
+        scale = 0.45 + rng() * 0.15;
+        fallSpeed = 1.8 + rng() * 0.4; // 6-8s traversal
         const side = rng() > 0.5 ? 1 : -1;
-        baseX = side * (2.8 + rng() * 2.5);
+        baseX = side * (3.0 + rng() * 1.8);
       } else if (tier === "near") {
-        // Near Layer (Z: +1.0 to +3.5)
-        z = 1.0 + rng() * 2.5;
-        scale = 0.22 + rng() * 0.12;
-        fallSpeed = 2.0 + rng() * 1.2;
+        // Near Layer (Z: +1.2 to +2.8)
+        z = 1.2 + rng() * 1.6;
+        scale = 0.24 + rng() * 0.08;
+        fallSpeed = 1.4 + rng() * 0.4; // 7-9s traversal
         const side = rng() > 0.5 ? 1 : -1;
-        baseX = side * (1.8 + rng() * 3.2);
-      } else if (tier === "bg") {
-        // Background (Z: -14.0 to -32.0)
-        z = -14.0 - rng() * 18.0;
-        scale = 0.05 + rng() * 0.04;
-        fallSpeed = 0.7 + rng() * 0.6;
+        baseX = side * (2.0 + rng() * 2.5);
+      } else if (tier === "distant") {
+        // Distant (Z: -14.0 to -26.0)
+        z = -14.0 - rng() * 12.0;
+        scale = 0.07 + rng() * 0.04;
+        fallSpeed = 0.8 + rng() * 0.3; // 10-14s traversal
         baseX = (rng() - 0.5) * 16.0;
       } else {
-        // Midground (Z: -6.0 to +0.8)
-        z = -6.0 + rng() * 6.8;
-        scale = 0.12 + rng() * 0.07;
-        fallSpeed = 1.3 + rng() * 0.9;
-        baseX = (rng() - 0.5) * 12.0;
+        // Midground (Z: -5.0 to +0.5)
+        z = -5.0 + rng() * 5.5;
+        scale = 0.14 + rng() * 0.06;
+        fallSpeed = 1.1 + rng() * 0.4; // 8-11s traversal
+        baseX = (rng() - 0.5) * 11.0;
       }
 
       const initialY = (rng() - 0.5) * 16.0;
@@ -109,10 +120,11 @@ export function HeartParticles({
         z,
         scale,
         fallSpeed,
-        swaySpeed: 0.7 + rng() * 1.4,
-        swayAmp: 0.18 + rng() * 0.35,
+        swaySpeed: 0.4 + rng() * 0.6, // Slow gentle sway
+        swayAmp: tier === "distant" ? 0.08 + rng() * 0.08 : 0.15 + rng() * 0.2,
         phase: rng() * Math.PI * 2,
-        tiltSpeed: 0.3 + rng() * 0.7,
+        tiltSpeed: 0.15 + rng() * 0.25, // Very slow rotation (10-20s period)
+        rotSpeedY: 0.1 + rng() * 0.2,
         colorHex,
         tier,
       };
@@ -121,7 +133,7 @@ export function HeartParticles({
     for (let i = 0; i < fgCount; i++) list.push(generateParticle("fg"));
     for (let i = 0; i < nearCount; i++) list.push(generateParticle("near"));
     for (let i = 0; i < midCount; i++) list.push(generateParticle("mid"));
-    for (let i = 0; i < bgCount; i++) list.push(generateParticle("bg"));
+    for (let i = 0; i < distantCount; i++) list.push(generateParticle("distant"));
 
     return list;
   }, [count]);
@@ -140,7 +152,7 @@ export function HeartParticles({
     }
   }, [particles]);
 
-  // 4. Continuous 60fps downward waterfall update via useFrame (Immutable purely mathematical wrap)
+  // 4. Smooth continuous useFrame loop without state allocation
   useFrame((state) => {
     if (!meshRef.current || isPaused) return;
 
@@ -150,24 +162,22 @@ export function HeartParticles({
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
 
-      // Downward fall wrap: initialY - clockTime * fallSpeed
+      // Downward waterfall fall wrap
       const rawY = p.initialY - clockTime * p.fallSpeed;
       const normalizedY = ((rawY % streamHeight) + streamHeight) % streamHeight;
       const currentY = normalizedY - 8.0;
 
-      // Horizontal organic sway
+      // Gentle horizontal organic sway
       const currentX = p.baseX + Math.sin(clockTime * p.swaySpeed + p.phase) * p.swayAmp;
 
-      // Subtle pulse and gentle tilt
-      const pulseScale = p.scale * (1 + Math.sin(clockTime * 1.5 + p.phase) * 0.08);
+      // Slow elegant 3D rotation highlighting specular sheen
+      const rotZ = Math.sin(clockTime * p.tiltSpeed + p.phase) * 0.18;
+      const rotY = Math.sin(clockTime * p.rotSpeedY + p.phase) * 0.28;
+      const rotX = Math.cos(clockTime * p.tiltSpeed + p.phase) * 0.12;
 
       dummy.position.set(currentX, currentY, p.z);
-      dummy.rotation.set(
-        0,
-        0,
-        Math.sin(clockTime * p.tiltSpeed + p.phase) * 0.28
-      );
-      dummy.scale.set(pulseScale, pulseScale, pulseScale);
+      dummy.rotation.set(rotX, rotY, rotZ);
+      dummy.scale.set(p.scale, p.scale, p.scale);
       dummy.updateMatrix();
 
       meshRef.current.setMatrixAt(i, dummy.matrix);
@@ -177,12 +187,22 @@ export function HeartParticles({
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[heartGeometry, undefined, particles.length]}>
-      <meshBasicMaterial
-        side={THREE.DoubleSide}
+    <instancedMesh
+      ref={meshRef}
+      args={[heartGeometry, undefined, particles.length]}
+    >
+      <meshPhysicalMaterial
+        roughness={0.22}
+        metalness={0.08}
+        clearcoat={0.9}
+        clearcoatRoughness={0.12}
+        transmission={0.12}
+        ior={1.45}
         transparent
-        opacity={0.92}
+        opacity={0.94}
+        side={THREE.DoubleSide}
       />
     </instancedMesh>
   );
 }
+

@@ -171,6 +171,8 @@ export async function createGiftAction(
       ? (statusInput as GiftStatus)
       : "draft";
 
+    const streamPhraseCategoryId = (formData.get("streamPhraseCategoryId") as string)?.trim() || null;
+
     while (attempts < maxAttempts) {
       const { data, error } = await supabase
         .from("gifts")
@@ -182,6 +184,7 @@ export async function createGiftAction(
           message,
           start_date: startDate || null,
           status: giftStatus,
+          stream_phrase_category_id: streamPhraseCategoryId,
         })
         .select("id, slug")
         .single();

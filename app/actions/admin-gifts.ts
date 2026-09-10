@@ -81,6 +81,8 @@ export async function updateGiftAction(
       return { success: false, error: "Lời nhắn không được vượt quá 3000 ký tự." };
     }
 
+    const streamPhraseCategoryId = (formData.get("streamPhraseCategoryId") as string)?.trim() || null;
+
     const supabase = createAdminClient();
 
     // 1. Update basic gift fields
@@ -93,6 +95,7 @@ export async function updateGiftAction(
         message,
         start_date: startDate || null,
         status: ["active", "draft", "hidden"].includes(status) ? status : "draft",
+        stream_phrase_category_id: streamPhraseCategoryId,
         updated_at: new Date().toISOString(),
       })
       .eq("id", giftId);

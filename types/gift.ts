@@ -20,6 +20,7 @@ export interface Gift {
   start_date: string | null;
   theme: string | null;
   status: GiftStatus;
+  stream_phrase_category_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -45,6 +46,7 @@ export interface GiftMessage {
 export interface GiftWithMedia extends Gift {
   media?: GiftMedia[];
   story_messages?: GiftMessage[];
+  stream_phrases?: string[];
 }
 
 export interface CreateGiftInput {
@@ -54,6 +56,7 @@ export interface CreateGiftInput {
   title: string;
   message: string;
   storyMessages?: string[];
+  streamPhraseCategoryId?: string;
 }
 
 export interface ActionResponse<T = unknown> {

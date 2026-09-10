@@ -46,6 +46,7 @@ export function CreateGiftForm() {
     startDate: "",
     title: "",
     message: "",
+    streamPhraseCategoryId: "a1111111-1111-1111-1111-111111111111",
   });
 
   const [storyMessages, setStoryMessages] = useState<string[]>([
@@ -77,7 +78,7 @@ export function CreateGiftForm() {
   }, []);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -273,6 +274,9 @@ export function CreateGiftForm() {
         if (formData.startDate) {
           dataPayload.append("startDate", formData.startDate);
         }
+        if (formData.streamPhraseCategoryId) {
+          dataPayload.append("streamPhraseCategoryId", formData.streamPhraseCategoryId);
+        }
 
         // Append story messages
         for (const msg of cleanedStoryMessages) {
@@ -325,34 +329,50 @@ export function CreateGiftForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5 w-full">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <div className="p-3.5 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-200 text-xs flex items-center justify-between">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="text-rose-400 hover:text-rose-200 ml-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Recipient & Sender & Date & Title */}
       <div className="space-y-4">
-        <Input
-          label="Tên người gửi"
-          id="senderName"
-          name="senderName"
-          placeholder="Ví dụ: Hoàng Long"
-          maxLength={100}
-          value={formData.senderName}
-          onChange={handleChange}
-          required
-          disabled={isPending}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="Tên người nhận (ví dụ: Ánh Dương)"
+            id="receiverName"
+            name="receiverName"
+            placeholder="Nhập tên người nhận..."
+            maxLength={100}
+            value={formData.receiverName}
+            onChange={handleChange}
+            required
+            disabled={isPending}
+          />
+
+          <Input
+            label="Tên người gửi (ví dụ: Thế Điểm)"
+            id="senderName"
+            name="senderName"
+            placeholder="Nhập tên người gửi..."
+            maxLength={100}
+            value={formData.senderName}
+            onChange={handleChange}
+            required
+            disabled={isPending}
+          />
+        </div>
 
         <Input
-          label="Tên người nhận"
-          id="recipientName"
-          name="receiverName"
-          placeholder="Ví dụ: Thu Hà"
-          maxLength={100}
-          value={formData.receiverName}
-          onChange={handleChange}
-          required
-          disabled={isPending}
-        />
-
-        <Input
-          label="Ngày kỷ niệm"
+          label="Ngày kỷ niệm (Tùy chọn)"
           id="startDate"
           name="startDate"
           type="date"
@@ -373,11 +393,41 @@ export function CreateGiftForm() {
           disabled={isPending}
         />
 
-        {/* Section: Lời nhắn trong không gian (Story Messages) */}
+        {/* Section: Bộ câu hiển thị 3D */}
+        <div className="space-y-1.5 p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800">
+          <label className="text-xs font-semibold uppercase tracking-wider text-rose-300 flex items-center gap-1.5">
+            <span>💬 Bộ câu hiển thị trong không gian 3D</span>
+          </label>
+          <select
+            name="streamPhraseCategoryId"
+            value={formData.streamPhraseCategoryId}
+            onChange={handleChange}
+            disabled={isPending}
+            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-100 focus:outline-none focus:border-rose-500"
+          >
+            <option value="a1111111-1111-1111-1111-111111111111">
+              ❤️ Yêu thương (Anh yêu em, Thương em nhiều lắm, Có em là đủ...)
+            </option>
+            <option value="a2222222-2222-2222-2222-222222222222">
+              💪 Cổ vũ (Cố lên nhé, Em làm được mà, Đừng bỏ cuộc nha...)
+            </option>
+            <option value="a3333333-3333-3333-3333-333333333333">
+              🌟 Động viên (Anh luôn ở đây, Mọi chuyện rồi sẽ ổn, Bình yên rồi sẽ đến...)
+            </option>
+            <option value="a4444444-4444-4444-4444-444444444444">
+              🍃 Chữa lành (Không sao đâu, Chậm lại một chút nhé, Hãy thương lấy mình...)
+            </option>
+          </select>
+          <p className="text-[11px] text-zinc-400">
+            Các câu ngắn thuộc bộ này sẽ xuất hiện ngẫu nhiên trong không gian 3D. Lời nhắn riêng chỉ hiển thị trong phần &ldquo;Đọc thư&rdquo;.
+          </p>
+        </div>
+
+        {/* Section: Lời nhắn trong thư (Personal Letter) */}
         <div className="space-y-3 pt-2">
           <div className="flex justify-between items-center flex-wrap gap-1">
             <label className="text-xs font-medium uppercase tracking-wider text-rose-300/90 flex items-center gap-1.5">
-              <span>✨ Lời nhắn trôi trong không gian ({storyMessages.length}/{MAX_STORY_MESSAGES})</span>
+              <span>💌 Lời nhắn trong thư ({storyMessages.length}/{MAX_STORY_MESSAGES})</span>
             </label>
             <div className="flex items-center gap-2">
               <button
@@ -390,7 +440,7 @@ export function CreateGiftForm() {
                 <span>✨</span>
                 <span>Điền nhanh 10 câu mẫu</span>
               </button>
-              <span className="text-[11px] text-zinc-500 hidden sm:inline">• 1–160 ký tự</span>
+              <span className="text-[11px] text-zinc-500 hidden sm:inline">• Chỉ người nhận thấy khi mở thư</span>
             </div>
           </div>
 

@@ -9,6 +9,8 @@ interface LoveStreamOverlayProps {
   started: boolean;
   replayTrigger: number;
   isPaused?: boolean;
+  onOpenLetter?: () => void;
+  onReplay?: () => void;
 }
 
 export function LoveStreamOverlay({
@@ -16,6 +18,8 @@ export function LoveStreamOverlay({
   started,
   replayTrigger,
   isPaused = false,
+  onOpenLetter,
+  onReplay,
 }: LoveStreamOverlayProps) {
   if (!started) return null;
 
@@ -30,10 +34,11 @@ export function LoveStreamOverlay({
       }}
     >
       <style jsx>{`
-        @keyframes loveFieldFlow {
+        /* Slow, cinematic, readable flow with 2.8s-3.5s center dwell */
+        @keyframes loveStreamSlowFlow {
           0% {
             transform: translate3d(
-                calc(-50% + var(--flow-x-drift) * -0.4),
+                calc(-50% + var(--flow-x-drift) * -0.3),
                 var(--flow-y-start),
                 var(--flow-z-depth)
               )
@@ -42,39 +47,39 @@ export function LoveStreamOverlay({
               rotateY(var(--flow-rot-y));
             opacity: 0;
           }
-          14% {
+          16% {
             opacity: var(--flow-opacity-focus);
           }
-          42% {
+          36% {
             transform: translate3d(
                 -50%,
-                38vh,
-                calc(var(--flow-z-depth) * 1.1)
+                36vh,
+                calc(var(--flow-z-depth) * 1.05)
               )
               scale(var(--flow-scale-focus))
-              rotateZ(calc(var(--flow-rot-z) * 0.7))
+              rotateZ(calc(var(--flow-rot-z) * 0.5))
               rotateY(0deg);
             opacity: var(--flow-opacity-focus);
           }
-          58% {
+          64% {
             transform: translate3d(
                 -50%,
-                50vh,
-                calc(var(--flow-z-depth) * 1.1)
+                52vh,
+                calc(var(--flow-z-depth) * 1.05)
               )
               scale(var(--flow-scale-focus))
-              rotateZ(calc(var(--flow-rot-z) * 0.7))
+              rotateZ(calc(var(--flow-rot-z) * 0.5))
               rotateY(0deg);
             opacity: var(--flow-opacity-focus);
           }
-          82% {
+          84% {
             opacity: calc(var(--flow-opacity-focus) * 0.85);
           }
           100% {
             transform: translate3d(
-                calc(-50% + var(--flow-x-drift) * 0.4),
+                calc(-50% + var(--flow-x-drift) * 0.3),
                 var(--flow-y-end),
-                calc(var(--flow-z-depth) * 1.25)
+                calc(var(--flow-z-depth) * 1.15)
               )
               scale(var(--flow-scale-end))
               rotateZ(var(--flow-rot-z))
@@ -83,58 +88,28 @@ export function LoveStreamOverlay({
           }
         }
 
-        @keyframes loveFieldForegroundPass {
+        /* Final Journey Card: Fades and scales in at exactly 30.0s */
+        @keyframes loveFinalCardSettle {
           0% {
-            transform: translate3d(-50%, var(--flow-y-start), var(--flow-z-depth))
-              scale(var(--flow-scale-start))
-              rotateZ(var(--flow-rot-z));
-            opacity: 0;
-          }
-          20% {
-            opacity: var(--flow-opacity-focus);
-          }
-          50% {
-            transform: translate3d(-50%, 42vh, calc(var(--flow-z-depth) + 80px))
-              scale(var(--flow-scale-focus))
-              rotateZ(var(--flow-rot-z));
-            opacity: var(--flow-opacity-focus);
-          }
-          100% {
-            transform: translate3d(-50%, var(--flow-y-end), calc(var(--flow-z-depth) + 140px))
-              scale(var(--flow-scale-end))
-              rotateZ(var(--flow-rot-z));
-            opacity: 0;
-          }
-        }
-
-        @keyframes loveFieldEndingSettle {
-          0% {
-            transform: translate3d(-50%, -20vh, 20px) scale(0.9);
+            transform: translate3d(-50%, -45%, 30px) scale(0.9);
             opacity: 0;
           }
           100% {
-            transform: translate3d(-50%, 0vh, 40px) scale(1.0);
+            transform: translate3d(-50%, -50%, 50px) scale(1.0);
             opacity: 1;
           }
         }
 
-        .anim-field-flow {
-          animation-name: loveFieldFlow;
-          animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+        .anim-stream-flow {
+          animation-name: loveStreamSlowFlow;
+          animation-timing-function: cubic-bezier(0.25, 1, 0.35, 1);
           animation-fill-mode: forwards;
           will-change: transform, opacity;
         }
 
-        .anim-fg-pass {
-          animation-name: loveFieldForegroundPass;
-          animation-timing-function: cubic-bezier(0.12, 0.8, 0.32, 1);
-          animation-fill-mode: forwards;
-          will-change: transform, opacity;
-        }
-
-        .anim-ending-settle {
-          animation-name: loveFieldEndingSettle;
-          animation-duration: 2.8s;
+        .anim-final-settle {
+          animation-name: loveFinalCardSettle;
+          animation-duration: 1.2s;
           animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
           animation-fill-mode: forwards;
           will-change: transform, opacity;
@@ -142,7 +117,7 @@ export function LoveStreamOverlay({
       `}</style>
 
       {events.map((event) => {
-        // Base CSS custom properties driving the 3D physics per item
+        // Base CSS custom properties driving the slow 3D physics per item
         const animCustomProps: React.CSSProperties = {
           ["--flow-y-start" as string]: `${event.yStartVh}vh`,
           ["--flow-y-end" as string]: `${event.yEndVh}vh`,
@@ -161,20 +136,20 @@ export function LoveStreamOverlay({
         };
 
         // ===================================================================
-        // 1. ENDING POSTER (Settles at 27s and holds forever)
+        // 1. FINAL JOURNEY CARD (Appears at exactly 30.0s — NEVER in 0-30s)
         // ===================================================================
-        if (event.isEnding) {
+        if (event.type === "FINAL_CARD" || event.isEnding) {
           return (
             <div
               key={event.id}
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center p-4 text-center anim-ending-settle w-full max-w-[440px]"
+              className="absolute left-1/2 top-1/2 flex flex-col items-center justify-center p-6 text-center anim-final-settle w-full max-w-[390px] pointer-events-auto opacity-0"
               style={{
                 animationDelay: `${event.startTime}s`,
                 animationPlayState: isPaused ? "paused" : "running",
               }}
             >
-              {/* Luminous Pulsing Heart Icon */}
-              <div className="text-4xl text-rose-400 mb-2 animate-pulse drop-shadow-[0_0_16px_rgba(244,63,94,0.9)]">
+              {/* Luminous Pulsing Ruby Heart */}
+              <div className="text-4xl sm:text-5xl text-rose-500 mb-3 animate-pulse drop-shadow-[0_0_20px_rgba(244,63,94,0.9)]">
                 ♥
               </div>
 
@@ -183,49 +158,72 @@ export function LoveStreamOverlay({
               </p>
 
               <h1
-                className="text-3xl sm:text-4xl font-serif text-white font-medium tracking-wide drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)] px-2"
+                className="text-2xl sm:text-3xl font-serif text-white font-medium tracking-wide drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)] px-2"
                 style={{
                   fontFamily: "var(--font-playfair), serif",
                   textShadow:
-                    "0 0 16px rgba(251,113,133,0.5), 0 0 35px rgba(225,29,72,0.35)",
+                    "0 0 16px rgba(251,113,133,0.6), 0 0 35px rgba(225,29,72,0.4)",
                 }}
               >
                 {event.text}
               </h1>
 
               {event.subtext && (
-                <p className="mt-3 text-sm sm:text-base text-rose-200/90 leading-relaxed font-serif italic max-w-sm drop-shadow-md">
+                <p className="mt-3 text-xs sm:text-sm text-rose-200/90 leading-relaxed font-serif italic max-w-xs drop-shadow-md">
                   {event.subtext}
                 </p>
               )}
+
+              {/* Direct interactive CTAs on Final Card */}
+              <div className="mt-6 flex items-center justify-center gap-3">
+                {onOpenLetter && (
+                  <button
+                    type="button"
+                    onClick={onOpenLetter}
+                    className="px-5 py-2.5 rounded-full bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white text-xs sm:text-sm font-medium shadow-[0_0_20px_rgba(225,29,72,0.5)] active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>📖</span>
+                    <span>Đọc thư</span>
+                  </button>
+                )}
+
+                {onReplay && (
+                  <button
+                    type="button"
+                    onClick={onReplay}
+                    className="px-4 py-2.5 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200 text-xs sm:text-sm font-medium border border-zinc-700/60 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>↺</span>
+                    <span>Xem lại</span>
+                  </button>
+                )}
+              </div>
             </div>
           );
         }
 
         // ===================================================================
-        // 2. PHOTO HERO (Flying from distance toward camera, large memory card)
+        // 2. PHOTO HERO (Slow 7.5s-8.4s memory moment, large 64-74vw, crisp)
         // ===================================================================
         if (event.type === "PHOTO_HERO" && event.photoUrl) {
           return (
             <div
               key={event.id}
-              className="absolute top-0 anim-field-flow opacity-0"
+              className="absolute top-0 anim-stream-flow opacity-0 pointer-events-none"
               style={animCustomProps}
             >
-              {/* Romantic Glowing Memory Card (Large 62vw-76vw, no bulky UI frame) */}
-              <div className="relative w-[min(72vw,310px)] aspect-[4/5] rounded-3xl overflow-hidden p-1 bg-gradient-to-br from-rose-300/60 via-rose-500/30 to-rose-950/80 shadow-[0_0_35px_rgba(244,63,94,0.5),0_15px_40px_rgba(0,0,0,0.8)] border border-rose-300/50 backdrop-blur-sm">
-                {/* Image itself */}
+              <div className="relative w-[min(72vw,330px)] aspect-[4/5] rounded-3xl overflow-hidden p-1 bg-gradient-to-br from-rose-300/40 via-rose-500/20 to-rose-950/70 shadow-[0_0_35px_rgba(244,63,94,0.45),0_15px_45px_rgba(0,0,0,0.85)] border border-rose-300/40 backdrop-blur-sm">
                 <div className="relative w-full h-full rounded-2xl overflow-hidden bg-zinc-950">
                   <Image
                     src={event.photoUrl}
                     alt="Love memory"
                     fill
-                    sizes="(max-width: 640px) 72vw, 310px"
+                    sizes="(max-width: 640px) 72vw, 330px"
                     className="object-cover"
                     unoptimized
                   />
-                  {/* Subtle glass sheen overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-white/10 pointer-events-none" />
+                  {/* Subtle soft sheen overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-white/10 pointer-events-none" />
                 </div>
               </div>
             </div>
@@ -233,93 +231,57 @@ export function LoveStreamOverlay({
         }
 
         // ===================================================================
-        // 3. FOREGROUND PASS-BY (Massive luminous text zooming past camera)
+        // 3. PRIMARY PHRASES & AMBIENT FLOATING TEXT (NO card, NO box, clean glow)
         // ===================================================================
-        if (event.type === "FOREGROUND_PASS") {
-          return (
-            <div
-              key={event.id}
-              className="absolute top-0 anim-fg-pass opacity-0 whitespace-nowrap pointer-events-none"
-              style={animCustomProps}
-            >
-              <span
-                className="font-serif font-black tracking-widest text-transparent bg-clip-text select-none"
-                style={{
-                  fontFamily: "var(--font-playfair), serif",
-                  fontSize: `${event.fontSizePx}px`,
-                  backgroundImage:
-                    "linear-gradient(180deg, #FFFFFF 0%, #FDA4AF 60%, #E11D48 100%)",
-                  filter:
-                    "drop-shadow(0 0 20px rgba(244,63,94,0.8)) drop-shadow(0 0 50px rgba(225,29,72,0.5))",
-                }}
-              >
-                {event.text}
-              </span>
-            </div>
-          );
-        }
+        const isPrimary = event.type === "PRIMARY_PHRASE";
 
-        // ===================================================================
-        // 4. PRIMARY MESSAGES & AMBIENT/MID NEON TYPOGRAPHY (Floating Free)
-        // ===================================================================
-        // Text Color & Glow Themes
-        let colorClass = "text-[#FFF1F4]";
-        let textShadowStyle =
-          "0 0 12px rgba(251,113,133,0.5), 0 0 25px rgba(244,63,94,0.35)";
+        let textShadow =
+          "0 0 10px rgba(251,113,133,0.7), 0 0 24px rgba(225,29,72,0.45), 0 2px 14px rgba(0,0,0,0.95)";
+        let textColor = "text-[#FFF3F6]";
 
-        if (event.colorTone === "hot-pink") {
-          colorClass = "text-[#FFE4E6]";
-          textShadowStyle =
-            "0 0 10px #FB7185, 0 0 22px #F43F5E, 0 0 45px rgba(225,29,72,0.6)";
-        } else if (event.colorTone === "rose") {
-          colorClass = "text-[#FDA4AF]";
-          textShadowStyle =
-            "0 0 8px #F43F5E, 0 0 18px #BE123C, 0 0 35px rgba(190,18,60,0.5)";
+        if (event.colorTone === "rose") {
+          textColor = "text-[#FFE4E6]";
+          textShadow =
+            "0 0 10px #FB7185, 0 0 22px #F43F5E, 0 2px 12px rgba(0,0,0,0.9)";
         } else if (event.colorTone === "gold-rose") {
-          colorClass = "text-[#FFF5F7]";
-          textShadowStyle =
-            "0 0 12px #FECDD3, 0 0 24px #FB7185, 0 0 45px rgba(244,63,94,0.4)";
+          textColor = "text-[#FFF8F9]";
+          textShadow =
+            "0 0 12px #FECDD3, 0 0 24px #FB7185, 0 2px 12px rgba(0,0,0,0.9)";
+        } else if (event.colorTone === "hot-pink") {
+          textColor = "text-[#FFE4E9]";
+          textShadow =
+            "0 0 10px #F43F5E, 0 0 22px #BE123C, 0 2px 12px rgba(0,0,0,0.9)";
         }
-
-        const isPrimary = event.type === "PRIMARY_MESSAGE" || event.type === "RECEIVER_HERO";
 
         return (
           <div
             key={event.id}
-            className={`absolute top-0 anim-field-flow opacity-0 text-center ${
-              isPrimary ? "w-[min(88vw,440px)]" : "max-w-[280px]"
+            className={`absolute top-0 anim-stream-flow opacity-0 text-center pointer-events-none ${
+              isPrimary
+                ? "w-[min(90vw,420px)]"
+                : "max-w-[240px]"
             }`}
             style={animCustomProps}
           >
-            {/* Free-floating typography (NO boxes, NO cards, NO background rectangles) */}
+            {/* 100% Free-floating glowing typography (NO background box, NO card border) */}
             <h2
-              className={`font-serif leading-[1.3] select-none break-words px-2 ${colorClass} ${
+              className={`font-serif leading-[1.3] select-none px-2 ${textColor} ${
                 isPrimary
-                  ? "font-medium drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)]"
-                  : "font-normal italic drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)]"
+                  ? "font-medium whitespace-nowrap"
+                  : "font-normal italic"
               }`}
               style={{
                 fontFamily: "var(--font-playfair), serif",
                 fontSize: `${event.fontSizePx}px`,
-                textShadow: textShadowStyle,
+                textShadow,
               }}
             >
               {event.text}
             </h2>
-
-            {event.subtext && (
-              <p
-                className="mt-2 text-xs sm:text-sm text-rose-200/90 leading-snug font-serif italic max-w-xs mx-auto"
-                style={{
-                  textShadow: "0 0 10px rgba(244,63,94,0.4)",
-                }}
-              >
-                {event.subtext}
-              </p>
-            )}
           </div>
         );
       })}
     </div>
   );
 }
+
