@@ -32,7 +32,7 @@ export async function getGiftBySlug(
     const supabase = createAdminClient();
     const { data: giftData, error: giftError } = await supabase
       .from("gifts")
-      .select("id, slug, sender_name, receiver_name, title, message, start_date, status, stream_phrase_category_id, audio_start_seconds, created_at")
+      .select("id, slug, sender_name, receiver_name, title, message, start_date, status, stream_phrase_category_id, relationship_type, occasion_type, pronoun_type, audio_start_seconds, created_at")
       .eq("slug", slug.trim())
       .maybeSingle();
 
@@ -172,7 +172,7 @@ export async function getAllGiftsForAdmin(
 
     let query = supabase
       .from("gifts")
-      .select("id, slug, sender_name, receiver_name, title, message, start_date, status, stream_phrase_category_id, audio_start_seconds, created_at, updated_at")
+      .select("id, slug, sender_name, receiver_name, title, message, start_date, status, stream_phrase_category_id, relationship_type, occasion_type, pronoun_type, audio_start_seconds, created_at, updated_at")
       .order("created_at", { ascending: false });
 
     if (options?.status && ["active", "draft", "hidden"].includes(options.status)) {

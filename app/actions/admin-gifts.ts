@@ -82,6 +82,9 @@ export async function updateGiftAction(
     }
 
     const streamPhraseCategoryId = (formData.get("streamPhraseCategoryId") as string)?.trim() || null;
+    const relationshipType = (formData.get("relationshipType") as string)?.trim() || "COUPLE";
+    const occasionType = (formData.get("occasionType") as string)?.trim() || "ANNIVERSARY";
+    const pronounType = (formData.get("pronounType") as string)?.trim() || "HE_TO_SHE";
 
     const audioStartSecondsRaw = formData.get("audioStartSeconds");
     let audioStartSeconds: number | undefined = undefined;
@@ -100,6 +103,9 @@ export async function updateGiftAction(
       message,
       start_date: startDate || null,
       status: ["active", "draft", "hidden"].includes(status) ? status : "draft",
+      relationship_type: relationshipType,
+      occasion_type: occasionType,
+      pronoun_type: pronounType,
       stream_phrase_category_id: streamPhraseCategoryId,
       updated_at: new Date().toISOString(),
     };

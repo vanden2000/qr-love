@@ -1,4 +1,10 @@
 import type { GiftWithMedia } from "@/types/gift";
+import {
+  getPresetSuggestion,
+  RelationshipType,
+  OccasionType,
+  PronounType,
+} from "@/lib/presets/occasions";
 
 export type StreamLayer = "distant" | "mid" | "primary" | "foreground";
 
@@ -92,8 +98,13 @@ export function generateLoveStreamSchedule({
 
   const events: LoveFieldEvent[] = [];
 
-  // 1. Calculate Anniversary Days & Labels
-  let anniversaryLabel = "Happy Anniversary";
+  // 1. Calculate Anniversary Days & Labels based on Preset Suggestion
+  const rel = (gift.relationship_type as RelationshipType) || "COUPLE";
+  const occ = (gift.occasion_type as OccasionType) || "ANNIVERSARY";
+  const pro = (gift.pronoun_type as PronounType) || "HE_TO_SHE";
+  const preset = getPresetSuggestion(rel, occ, pro);
+
+  let anniversaryLabel = occ === "BIRTHDAY" ? "Happy Birthday" : "Happy Anniversary";
   let anniversarySubtitle: string | undefined = undefined;
   if (gift.start_date) {
     const startTime = new Date(gift.start_date).getTime();
@@ -104,7 +115,7 @@ export function generateLoveStreamSchedule({
         Math.floor(Math.abs(createTime - startTime) / (1000 * 60 * 60 * 24))
       );
       anniversaryLabel = `${days} Days`;
-      anniversarySubtitle = `${days} ngày đong đầy yêu thương`;
+      anniversarySubtitle = preset.anniversarySubtitleFormat(days);
     }
   }
 

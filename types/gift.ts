@@ -21,6 +21,9 @@ export interface Gift {
   theme: string | null;
   status: GiftStatus;
   stream_phrase_category_id?: string | null;
+  relationship_type?: string | null;
+  occasion_type?: string | null;
+  pronoun_type?: string | null;
   audio_start_seconds?: number;
   created_at: string;
   updated_at: string;
@@ -58,6 +61,9 @@ export interface CreateGiftInput {
   message: string;
   storyMessages?: string[];
   streamPhraseCategoryId?: string;
+  relationshipType?: string;
+  occasionType?: string;
+  pronounType?: string;
   audioStartSeconds?: number;
 }
 

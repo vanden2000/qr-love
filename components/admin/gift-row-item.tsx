@@ -30,7 +30,6 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Form edit states
   const [formData, setFormData] = useState({
     senderName: gift.sender_name || "",
     receiverName: gift.receiver_name || "",
@@ -38,6 +37,9 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
     message: gift.message || "",
     startDate: gift.start_date || "",
     status: gift.status || "draft",
+    relationshipType: gift.relationship_type || "COUPLE",
+    occasionType: gift.occasion_type || "ANNIVERSARY",
+    pronounType: gift.pronoun_type || "HE_TO_SHE",
     streamPhraseCategoryId: gift.stream_phrase_category_id || "a1111111-1111-1111-1111-111111111111",
   });
 
@@ -234,6 +236,9 @@ export function GiftRowItem({ gift, onDeleted }: GiftRowItemProps) {
     payload.append("message", formData.message.trim());
     if (formData.startDate) payload.append("startDate", formData.startDate);
     payload.append("status", formData.status);
+    payload.append("relationshipType", formData.relationshipType);
+    payload.append("occasionType", formData.occasionType);
+    payload.append("pronounType", formData.pronounType);
     if (formData.streamPhraseCategoryId) {
       payload.append("streamPhraseCategoryId", formData.streamPhraseCategoryId);
     }

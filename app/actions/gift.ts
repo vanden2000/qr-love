@@ -17,6 +17,17 @@ const ALLOWED_IMAGE_TYPES = [
   "image/webp",
 ];
 
+const ALLOWED_AUDIO_TYPES = [
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/m4a",
+  "audio/x-m4a",
+  "audio/aac",
+  "audio/ogg",
+];
+
 export async function createGiftAction(
   formData: FormData
 ): Promise<ActionResponse<{ slug: string }>> {
@@ -46,6 +57,9 @@ export async function createGiftAction(
     const title = (formData.get("title") as string)?.trim() || "";
     const message = (formData.get("message") as string)?.trim() || "";
     const startDate = (formData.get("startDate") as string)?.trim() || null;
+    const relationshipType = (formData.get("relationshipType") as string)?.trim() || "COUPLE";
+    const occasionType = (formData.get("occasionType") as string)?.trim() || "ANNIVERSARY";
+    const pronounType = (formData.get("pronounType") as string)?.trim() || "HE_TO_SHE";
 
     // Extract story messages
     const storyMessagesRaw = formData.getAll("storyMessages") as string[];
@@ -140,21 +154,21 @@ export async function createGiftAction(
       audioFile.size > 0 &&
       audioFile.name;
 
+    if (hasAudio && audioFile && audioFile.size > MAX_AUDIO_SIZE) {
+      return {
+        success: false,
+        error: "File âm thanh vượt quá dung lượng tối đa 15MB.",
+      };
+    }
+
     if (hasAudio && audioFile) {
-      if (audioFile.size > MAX_AUDIO_SIZE) {
+      const isAllowedAudioType =
+        ALLOWED_AUDIO_TYPES.includes(audioFile.type) ||
+        /\.(mp3|wav|m4a|aac|ogg)$/i.test(audioFile.name);
+      if (!isAllowedAudioType) {
         return {
           success: false,
-          error: `File nhạc vượt quá dung lượng tối đa 15MB.`,
-        };
-      }
-      const isMp3 =
-        audioFile.type === "audio/mpeg" ||
-        audioFile.type === "audio/mp3" ||
-        /\.mp3$/i.test(audioFile.name);
-      if (!isMp3) {
-        return {
-          success: false,
-          error: `Định dạng nhạc không hợp lệ. Chỉ chấp nhận file MP3.`,
+          error: "Định dạng âm thanh không hợp lệ. Chỉ chấp nhận MP3, M4A, WAV, AAC, OGG.",
         };
       }
     }
@@ -175,7 +189,7 @@ export async function createGiftAction(
 
     const audioStartSecondsRaw = formData.get("audioStartSeconds");
     const audioStartSeconds =
-      hasAudio && audioStartSecondsRaw !== null && isFinite(Number(audioStartSecondsRaw))
+      audioStartSecondsRaw !== null && !isNaN(Number(audioStartSecondsRaw))
         ? Math.max(0, Number(audioStartSecondsRaw))
         : 0;
 
@@ -188,6 +202,9 @@ export async function createGiftAction(
         message,
         start_date: startDate || null,
         status: giftStatus,
+        relationship_type: relationshipType,
+        occasion_type: occasionType,
+        pronoun_type: pronounType,
       };
 
       if (streamPhraseCategoryId) {
@@ -203,15 +220,18 @@ export async function createGiftAction(
         .select("id, slug")
         .single();
 
-      // Fallback: If audio_start_seconds or stream_phrase_category_id column is not in DB schema yet
+      // Fallback: If any new columns are not in DB schema yet
       if (
         error &&
-        (error.message?.includes("audio_start_seconds") ||
+        (error.message?.includes("relationship_type") ||
+          error.message?.includes("occasion_type") ||
+          error.message?.includes("pronoun_type") ||
+          error.message?.includes("audio_start_seconds") ||
           error.message?.includes("stream_phrase_category_id") ||
           error.code === "PGRST204" ||
           error.code === "42703")
       ) {
-        console.warn("Retrying gift insert without optional columns:", error.message);
+        console.warn("Retrying gift insert with core payload:", error.message);
         const fallbackPayload = {
           slug,
           sender_name: senderName,
