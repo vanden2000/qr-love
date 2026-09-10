@@ -396,21 +396,21 @@ export function CreateGiftForm() {
         router.push(`/create/success/${response.data.slug}`);
       } catch (err) {
         console.error("Form submit error:", err);
-        const errMsg = err instanceof Error ? err.message : "";
+        const errMsg = err instanceof Error ? err.message : String(err);
         if (
           errMsg.includes("was not found on the server") ||
-          errMsg.includes("Failed to find Server Action") ||
-          errMsg.includes("unexpected response") ||
-          errMsg.includes("Failed to fetch")
+          errMsg.includes("Failed to find Server Action")
         ) {
           setError(
-            "Hệ thống vừa được cập nhật phiên bản mới. Vui lòng bấm F5 (Tải lại trang) để đồng bộ và tiếp tục nhé!"
+            "Hệ thống vừa cập nhật phiên bản mới. Vui lòng bấm F5 (Tải lại trang) để đồng bộ và tiếp tục nhé!"
+          );
+        } else if (errMsg.includes("unexpected response") || errMsg.includes("Failed to fetch")) {
+          setError(
+            "Không thể kết nối đến máy chủ hoặc dung lượng ảnh/nhạc quá lớn. Vui lòng kiểm tra kết nối mạng và thử lại."
           );
         } else {
           setError(
-            err instanceof Error
-              ? err.message
-              : "Đã xảy ra lỗi khi tạo món quà. Vui lòng thử lại sau."
+            errMsg || "Đã xảy ra lỗi khi tạo món quà. Vui lòng thử lại sau."
           );
         }
       }

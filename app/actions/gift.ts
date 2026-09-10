@@ -37,8 +37,15 @@ export async function createGiftAction(
   const uploadedStorageFiles: Array<{ bucket: string; path: string }> = [];
 
   try {
-    // 0. Enforce Server-side Admin Authorization
-    await requireAdmin(false);
+    // 0. Enforce Server-side Admin Authorization cleanly
+    const { getCurrentUser } = await import("@/lib/auth/get-current-user");
+    const { user, profile, isAdmin } = await getCurrentUser();
+    if (!user || !profile || !isAdmin) {
+      return {
+        success: false,
+        error: "Phiên đăng nhập đã hết hạn hoặc không có quyền quản trị viên. Vui lòng đăng nhập lại.",
+      };
+    }
 
     // 1. Rate Limiting: Max 20 gifts / 1 hour per IP for admin
     const clientIp = await getClientIp();
