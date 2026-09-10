@@ -180,9 +180,39 @@ export async function createGiftAction(
         : 0;
 
     while (attempts < maxAttempts) {
-      const { data, error } = await supabase
+      const insertPayload: Record<string, unknown> = {
+        slug,
+        sender_name: senderName,
+        receiver_name: receiverName,
+        title,
+        message,
+        start_date: startDate || null,
+        status: giftStatus,
+      };
+
+      if (streamPhraseCategoryId) {
+        insertPayload.stream_phrase_category_id = streamPhraseCategoryId;
+      }
+      if (audioStartSeconds > 0) {
+        insertPayload.audio_start_seconds = audioStartSeconds;
+      }
+
+      let { data, error } = await supabase
         .from("gifts")
-        .insert({
+        .insert(insertPayload)
+        .select("id, slug")
+        .single();
+
+      // Fallback: If audio_start_seconds or stream_phrase_category_id column is not in DB schema yet
+      if (
+        error &&
+        (error.message?.includes("audio_start_seconds") ||
+          error.message?.includes("stream_phrase_category_id") ||
+          error.code === "PGRST204" ||
+          error.code === "42703")
+      ) {
+        console.warn("Retrying gift insert without optional columns:", error.message);
+        const fallbackPayload = {
           slug,
           sender_name: senderName,
           receiver_name: receiverName,
@@ -190,11 +220,17 @@ export async function createGiftAction(
           message,
           start_date: startDate || null,
           status: giftStatus,
-          stream_phrase_category_id: streamPhraseCategoryId,
-          audio_start_seconds: audioStartSeconds,
-        })
-        .select("id, slug")
-        .single();
+        };
+
+        const retryResult = await supabase
+          .from("gifts")
+          .insert(fallbackPayload)
+          .select("id, slug")
+          .single();
+
+        data = retryResult.data;
+        error = retryResult.error;
+      }
 
       if (!error && data) {
         createdGiftId = data.id;
@@ -211,7 +247,7 @@ export async function createGiftAction(
       console.error("Supabase gift insert error:", error?.message || error);
       return {
         success: false,
-        error: "Không thể khởi tạo món quà. Vui lòng thử lại sau.",
+        error: `Không thể khởi tạo món quà: ${error?.message || "Lỗi cơ sở dữ liệu."}`,
       };
     }
 

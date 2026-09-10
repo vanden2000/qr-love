@@ -108,14 +108,30 @@ export async function updateGiftAction(
       updateGiftPayload.audio_start_seconds = audioStartSeconds;
     }
 
-    const { error: giftUpdateError } = await supabase
+    let { error: giftUpdateError } = await supabase
       .from("gifts")
       .update(updateGiftPayload)
       .eq("id", giftId);
 
+    if (
+      giftUpdateError &&
+      (giftUpdateError.message?.includes("audio_start_seconds") ||
+        giftUpdateError.message?.includes("stream_phrase_category_id") ||
+        giftUpdateError.code === "PGRST204" ||
+        giftUpdateError.code === "42703")
+    ) {
+      delete updateGiftPayload.audio_start_seconds;
+      delete updateGiftPayload.stream_phrase_category_id;
+      const retryRes = await supabase
+        .from("gifts")
+        .update(updateGiftPayload)
+        .eq("id", giftId);
+      giftUpdateError = retryRes.error;
+    }
+
     if (giftUpdateError) {
       console.error("Error updating gift:", giftUpdateError.message);
-      return { success: false, error: "Không thể cập nhật thông tin món quà." };
+      return { success: false, error: `Không thể cập nhật thông tin món quà: ${giftUpdateError.message}` };
     }
 
     // 2. Update Story Messages in gift_messages table
