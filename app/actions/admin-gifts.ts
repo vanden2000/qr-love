@@ -123,11 +123,17 @@ export async function updateGiftAction(
       giftUpdateError &&
       (giftUpdateError.message?.includes("audio_start_seconds") ||
         giftUpdateError.message?.includes("stream_phrase_category_id") ||
+        giftUpdateError.message?.includes("relationship_type") ||
+        giftUpdateError.message?.includes("occasion_type") ||
+        giftUpdateError.message?.includes("pronoun_type") ||
         giftUpdateError.code === "PGRST204" ||
         giftUpdateError.code === "42703")
     ) {
       delete updateGiftPayload.audio_start_seconds;
       delete updateGiftPayload.stream_phrase_category_id;
+      delete updateGiftPayload.relationship_type;
+      delete updateGiftPayload.occasion_type;
+      delete updateGiftPayload.pronoun_type;
       const retryRes = await supabase
         .from("gifts")
         .update(updateGiftPayload)
