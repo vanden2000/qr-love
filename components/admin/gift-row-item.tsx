@@ -293,78 +293,101 @@ export function GiftRowItem({
   };
 
   return (
-    <div className={`border-b border-zinc-800/60 transition-colors last:border-b-0 ${isSelected ? "bg-rose-950/20" : ""}`}>
-      {/* 1. Main Row Header */}
-      <div className="flex items-center justify-between p-3.5 sm:p-4 gap-3 hover:bg-zinc-900/40 transition-colors">
-        {/* Checkbox for Bulk Selection */}
-        {onToggleSelect && (
-          <div className="flex items-center pr-1" onClick={(e) => e.stopPropagation()}>
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={() => onToggleSelect(gift.id)}
-              className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-rose-600 focus:ring-rose-500/30 focus:ring-offset-0 cursor-pointer accent-rose-600"
-              title="Chọn món quà"
-            />
+    <div
+      className={`border-b border-zinc-800/60 transition-all last:border-b-0 ${
+        isSelected ? "bg-rose-950/20" : "hover:bg-zinc-900/30"
+      }`}
+    >
+      {/* 1. Main Row / Card Content */}
+      <div className="p-3.5 sm:p-4 space-y-2.5">
+        {/* Top Header: Checkbox + Avatar + Receiver/Sender + Status Badge */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            {onToggleSelect && (
+              <div className="flex items-center shrink-0" onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => onToggleSelect(gift.id)}
+                  className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-rose-600 focus:ring-rose-500/30 focus:ring-offset-0 cursor-pointer accent-rose-600 shrink-0"
+                  title="Chọn món quà"
+                />
+              </div>
+            )}
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-rose-500/20 to-pink-600/20 border border-rose-500/30 flex items-center justify-center text-xs font-bold text-rose-300 shrink-0 uppercase">
+              {gift.receiver_name ? gift.receiver_name.charAt(0) : "❤️"}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <span className="font-bold text-zinc-100 text-sm tracking-tight truncate">
+                  {gift.receiver_name}
+                </span>
+                <span className="text-zinc-400 text-xs truncate">
+                  • từ <span className="text-zinc-300 font-medium">{gift.sender_name || "—"}</span>
+                </span>
+              </div>
+            </div>
           </div>
-        )}
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-zinc-100 text-sm truncate">
-              {gift.receiver_name}
-            </span>
-            <span className="text-zinc-500 text-xs">• từ {gift.sender_name || "—"}</span>
-            <span className="text-[11px] font-mono text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
-              /{gift.slug}
-            </span>
-          </div>
-          <p className="text-xs text-zinc-400 truncate mt-0.5 max-w-md">
-            {gift.title}
-          </p>
-        </div>
-
-        {/* Quick Status Dropdown & Action Buttons */}
-        <div className="flex items-center gap-2">
-          <div className="relative">
+          {/* Quick Status Dropdown Badge */}
+          <div className="shrink-0">
             <select
               value={status}
               disabled={isStatusPending}
               onChange={(e) => handleStatusChange(e.target.value as GiftStatus)}
-              className={`text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full border cursor-pointer focus:outline-none transition-all ${
+              className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border cursor-pointer focus:outline-none transition-all ${
                 status === "active"
-                  ? "bg-emerald-950/80 text-emerald-300 border-emerald-700/60 hover:bg-emerald-900/90"
+                  ? "bg-emerald-950/90 text-emerald-300 border-emerald-600/60 hover:bg-emerald-900/90"
                   : status === "draft"
-                  ? "bg-amber-950/80 text-amber-300 border-amber-700/60 hover:bg-amber-900/90"
-                  : "bg-rose-950/80 text-rose-300 border-rose-700/60 hover:bg-rose-900/90"
+                  ? "bg-amber-950/90 text-amber-300 border-amber-600/60 hover:bg-amber-900/90"
+                  : "bg-rose-950/90 text-rose-300 border-rose-600/60 hover:bg-rose-900/90"
               }`}
             >
               <option value="active" className="bg-zinc-900 text-emerald-300">
-                🟢 Active
+                🟢 ACTIVE
               </option>
               <option value="draft" className="bg-zinc-900 text-amber-300">
-                🟡 Draft
+                🟡 DRAFT
               </option>
               <option value="hidden" className="bg-zinc-900 text-rose-300">
-                🔴 Hidden
+                🔴 HIDDEN
               </option>
             </select>
           </div>
+        </div>
 
-          {/* Expand Button */}
+        {/* Middle Info: Title & Badges */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs pl-0 sm:pl-9">
+          <p className="text-zinc-300 line-clamp-1 font-medium text-xs">
+            {gift.title || "Không có tiêu đề"}
+          </p>
+
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <span className="text-[11px] font-mono text-zinc-400 bg-zinc-950 px-2 py-0.5 rounded-md border border-zinc-800">
+              /{gift.slug}
+            </span>
+            {gift.media && gift.media.filter((m) => m.type === "image").length > 0 && (
+              <span className="text-[10px] text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
+                📷 {gift.media.filter((m) => m.type === "image").length} ảnh
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Actions Bar */}
+        <div className="flex items-center gap-2 pt-1.5 border-t border-zinc-800/40">
           <button
             type="button"
             onClick={handleToggleExpand}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1 cursor-pointer ${
+            className={`flex-1 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               isExpanded
-                ? "bg-rose-950/60 border-rose-800 text-rose-200"
-                : "bg-zinc-900 hover:bg-zinc-800 border-zinc-800 text-zinc-300"
+                ? "bg-rose-950/70 border-rose-800 text-rose-200 shadow-sm"
+                : "bg-zinc-900 hover:bg-zinc-800 border-zinc-800 text-zinc-200"
             }`}
           >
-            <span>{isExpanded ? "▲ Thu gọn" : "▼ Xem & Sửa"}</span>
+            <span>{isExpanded ? "▲ Thu gọn bảng sửa" : "▼ Xem & Sửa"}</span>
           </button>
 
-          {/* Quick Delete Button */}
           <button
             type="button"
             onClick={() => {
@@ -374,11 +397,11 @@ export function GiftRowItem({
                 setShowDeleteConfirm(true);
               }
             }}
-            className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-zinc-900 hover:bg-rose-950/80 border border-zinc-800 hover:border-rose-800 text-zinc-400 hover:text-rose-300 transition-colors cursor-pointer flex items-center gap-1"
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-zinc-900 hover:bg-rose-950/80 border border-zinc-800 hover:border-rose-800 text-zinc-400 hover:text-rose-300 transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
             title="Xóa nhanh món quà này"
           >
             <span>🗑️</span>
-            <span className="hidden sm:inline">Xóa</span>
+            <span>Xóa</span>
           </button>
         </div>
       </div>
