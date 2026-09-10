@@ -105,26 +105,27 @@ export function generateLoveStreamSchedule({
     }
   }
 
-  // 2. Build Rich Pool of "Lời muốn nói" & Key Phrases
-  const customPhrases: string[] = [];
-
-  // A. Story Messages ("Lời muốn nói" managed per gift)
+  // 2. Extract User's Custom "Lời muốn nói" (High Priority)
+  const userStoryPhrases: string[] = [];
   if (gift.story_messages && gift.story_messages.length > 0) {
     gift.story_messages.forEach((sm) => {
       const content = typeof sm === "string" ? sm : sm.content;
       if (content && content.trim()) {
-        customPhrases.push(content.trim());
+        userStoryPhrases.push(content.trim());
       }
     });
   }
 
-  // B. Names & Key Identifiers
+  // 3. Build Full Pool of Phrases
+  const customPhrases: string[] = [...userStoryPhrases];
+
+  // Names & Key Identifiers
   if (gift.receiver_name) customPhrases.push(gift.receiver_name.trim());
   if (gift.sender_name) customPhrases.push(gift.sender_name.trim());
   if (anniversaryLabel) customPhrases.push(anniversaryLabel);
   customPhrases.push("Happy Anniversary");
 
-  // C. Admin / Category Stream Phrases
+  // Admin / Category Stream Phrases
   if (gift.stream_phrases && gift.stream_phrases.length > 0) {
     gift.stream_phrases.forEach((p) => {
       const txt = typeof p === "string" ? p.trim() : (p as { content: string }).content?.trim();
@@ -141,12 +142,12 @@ export function generateLoveStreamSchedule({
     });
   }
 
-  // 3. Extract Memory Photos
+  // 4. Extract Memory Photos
   const images = (gift.media || [])
     .filter((m) => m.type === "image" && Boolean(m.url))
     .slice(0, 5);
 
-  // 4. Color Tone Palettes (Weighted heavily towards Neon Ice-Blue / Cyan as in reference)
+  // 5. Color Tone Palettes (Weighted towards Neon Ice-Blue / Cyan as in reference)
   const tones: ("neon-cyan" | "neon-white" | "neon-rose" | "gold-rose")[] = [
     "neon-cyan",
     "neon-cyan",
@@ -157,74 +158,85 @@ export function generateLoveStreamSchedule({
   ];
 
   // =========================================================================
-  // CHAPTER 1: DENSE WATERFALL TEXT STREAM (0.3s - 27.5s) — 50 to 65 EVENTS
-  // Distributes phrases across Foreground, Primary, Midground, and Distant layers
+  // CHAPTER 1: DENSE WATERFALL TEXT STREAM (0.4s - 26.5s) — SLOW & CLEAR ON MOBILE
+  // Traversal duration: 8.5s - 11.0s (Smooth, readable, no rush)
   // =========================================================================
-  const totalTextEvents = 52;
-  const timeSpan = 26.5;
+  const totalTextEvents = 44;
+  const timeSpan = 25.5;
+
+  // Track phrase rotation to ensure all user custom phrases are shown first
+  let userPhraseIndex = 0;
 
   for (let i = 0; i < totalTextEvents; i++) {
-    const rawStart = 0.3 + (i / totalTextEvents) * timeSpan;
-    const jitter = (rng() - 0.5) * 0.7;
-    const startTime = Math.max(0.2, Math.min(27.0, rawStart + jitter));
-    const phrase = customPhrases[Math.floor(rng() * customPhrases.length)] || "Em yêu anh";
+    const rawStart = 0.4 + (i / totalTextEvents) * timeSpan;
+    const jitter = (rng() - 0.5) * 0.6;
+    const startTime = Math.max(0.3, Math.min(26.5, rawStart + jitter));
+
+    // Choose phrase: alternate ensuring user's story phrases appear frequently
+    let phrase: string;
+    if (userStoryPhrases.length > 0 && (i % 2 === 0 || i < userStoryPhrases.length * 2)) {
+      phrase = userStoryPhrases[userPhraseIndex % userStoryPhrases.length];
+      userPhraseIndex++;
+    } else {
+      phrase = customPhrases[Math.floor(rng() * customPhrases.length)] || "Em yêu anh";
+    }
 
     // Assign layer tier deterministically
     const tierRand = rng();
     let layer: StreamLayer = "mid";
     let zDepthPx = 0;
-    let fontSizePx = 22;
+    let fontSizePx = 18;
     let opacityFocus = 0.85;
     let scaleStart = 0.85;
     let scaleFocus = 1.0;
-    let scaleEnd = 1.1;
-    let duration = 6.2 + rng() * 1.8; // 6.2s - 8.0s waterfall fall
+    let scaleEnd = 1.08;
+    let duration = 9.0 + rng() * 2.0; // 9.0s - 11.0s slow graceful fall
 
-    // Lateral position across screen width (-38% to +38%)
-    const xPercent = (rng() - 0.5) * 76;
-    const tiltZ = (rng() - 0.5) * 14; // -7° to +7° tilt
-    const rotY = (rng() - 0.5) * 12;
+    // Lateral position constrained to mobile-friendly center zone (-25% to +25%)
+    const xPercent = (rng() - 0.5) * 52;
+    const tiltZ = (rng() - 0.5) * 10; // -5° to +5° gentle tilt
+    const rotY = (rng() - 0.5) * 8;
 
-    if (tierRand < 0.18) {
-      // GIANT FOREGROUND SWOOP (Passes very close to camera with high bloom)
+    if (tierRand < 0.2) {
+      // GIANT FOREGROUND SWOOP (Readable, luminous pass)
       layer = "foreground";
-      zDepthPx = 200 + rng() * 120; // +200px to +320px
-      fontSizePx = phrase.length > 25 ? 32 : phrase.length > 15 ? 38 : 46;
+      zDepthPx = 160 + rng() * 90; // +160px to +250px
+      fontSizePx = phrase.length > 25 ? 26 : phrase.length > 15 ? 30 : 34;
       opacityFocus = 0.95;
       scaleStart = 0.9;
-      scaleFocus = 1.35;
-      scaleEnd = 1.55;
-      duration = 5.2 + rng() * 1.2; // slightly faster foreground pass
-    } else if (tierRand < 0.55) {
+      scaleFocus = 1.25;
+      scaleEnd = 1.35;
+      duration = 8.2 + rng() * 1.5; // 8.2s - 9.7s
+    } else if (tierRand < 0.6) {
       // PRIMARY HERO / READABLE
       layer = "primary";
-      zDepthPx = 40 + rng() * 80; // +40px to +120px
-      fontSizePx = phrase.length > 30 ? 22 : phrase.length > 18 ? 26 : 32;
+      zDepthPx = 30 + rng() * 60; // +30px to +90px
+      fontSizePx = phrase.length > 30 ? 19 : phrase.length > 18 ? 22 : 26;
       opacityFocus = 1.0;
       scaleStart = 0.85;
-      scaleFocus = 1.05;
-      scaleEnd = 1.18;
-      duration = 6.5 + rng() * 1.5;
-    } else if (tierRand < 0.82) {
+      scaleFocus = 1.02;
+      scaleEnd = 1.1;
+      duration = 9.0 + rng() * 1.8;
+    } else if (tierRand < 0.85) {
       // MIDGROUND
       layer = "mid";
-      zDepthPx = -80 - rng() * 90; // -80px to -170px
-      fontSizePx = phrase.length > 25 ? 17 : 21;
+      zDepthPx = -60 - rng() * 70; // -60px to -130px
+      fontSizePx = phrase.length > 25 ? 15 : 18;
       opacityFocus = 0.75;
       scaleStart = 0.8;
-      scaleFocus = 0.9;
-      scaleEnd = 0.95;
-      duration = 7.0 + rng() * 1.8;
+      scaleFocus = 0.88;
+      scaleEnd = 0.92;
+      duration = 9.8 + rng() * 2.0;
     } else {
       // DISTANT AMBIENT GLOW
       layer = "distant";
-      zDepthPx = -220 - rng() * 160; // -220px to -380px
-      fontSizePx = 14 + Math.floor(rng() * 4);
+      zDepthPx = -180 - rng() * 120; // -180px to -300px
+      fontSizePx = 13 + Math.floor(rng() * 3);
       opacityFocus = 0.45;
-      scaleStart = 0.65;
+      scaleStart = 0.68;
       scaleFocus = 0.72;
       scaleEnd = 0.75;
-      duration = 8.0 + rng() * 2.2;
+      duration = 10.5 + rng() * 2.5;
     }
 
     events.push({
@@ -253,8 +265,8 @@ export function generateLoveStreamSchedule({
   // CHAPTER 2: GLOWING HEART ICONS & AMBIENT ACCENTS ("♡", "♥", "Forever")
   // =========================================================================
   const symbols = ["♡", "♥", "♡", "Forever", "Always", "♡", "Bình yên"];
-  for (let s = 0; s < 16; s++) {
-    const startTime = 0.5 + (s / 16) * 26.0 + (rng() - 0.5) * 0.8;
+  for (let s = 0; s < 14; s++) {
+    const startTime = 0.5 + (s / 14) * 26.0 + (rng() - 0.5) * 0.8;
     if (startTime > 27.5) continue;
 
     const sym = symbols[s % symbols.length];
@@ -265,19 +277,19 @@ export function generateLoveStreamSchedule({
       type: "AMBIENT_SHORT",
       layer: isClose ? "primary" : "distant",
       startTime: Math.round(startTime * 100) / 100,
-      duration: Math.round((7.0 + rng() * 2.5) * 100) / 100,
-      xPercent: Math.round(((rng() - 0.5) * 80) * 10) / 10,
+      duration: Math.round((9.5 + rng() * 2.5) * 100) / 100,
+      xPercent: Math.round(((rng() - 0.5) * 54) * 10) / 10,
       yStartVh: -18,
       yEndVh: 118,
-      zDepthPx: isClose ? 80 : -260 - rng() * 120,
+      zDepthPx: isClose ? 70 : -220 - rng() * 100,
       scaleStart: 0.7,
-      scaleFocus: isClose ? 1.1 : 0.75,
+      scaleFocus: isClose ? 1.05 : 0.75,
       scaleEnd: 0.8,
-      rotateZDeg: Math.round(((rng() - 0.5) * 20) * 10) / 10,
-      rotateYDeg: (rng() - 0.5) * 15,
+      rotateZDeg: Math.round(((rng() - 0.5) * 16) * 10) / 10,
+      rotateYDeg: (rng() - 0.5) * 12,
       text: sym,
       colorTone: sym === "♥" ? "neon-rose" : "neon-cyan",
-      fontSizePx: sym === "♡" || sym === "♥" ? (isClose ? 32 : 20) : 15,
+      fontSizePx: sym === "♡" || sym === "♥" ? (isClose ? 26 : 18) : 14,
       opacityFocus: isClose ? 0.9 : 0.45,
     });
   }
@@ -289,26 +301,26 @@ export function generateLoveStreamSchedule({
   if (images.length > 0) {
     const photoSpans =
       images.length === 1
-        ? [7.5]
+        ? [8.0]
         : images.length === 2
-        ? [4.5, 14.0]
+        ? [5.0, 15.0]
         : images.length === 3
-        ? [3.5, 10.5, 18.0]
+        ? [4.0, 11.5, 19.0]
         : images.length === 4
-        ? [3.0, 8.5, 14.5, 20.5]
-        : [2.5, 7.5, 12.5, 17.5, 22.0];
+        ? [3.5, 9.5, 15.5, 21.5]
+        : [2.5, 7.5, 12.5, 17.5, 22.5];
 
     images.forEach((img, idx) => {
       const anchor = photoSpans[idx];
-      const jitter = (rng() - 0.5) * 0.6;
+      const jitter = (rng() - 0.5) * 0.5;
       const startTime = Math.max(2.0, Math.min(23.5, anchor + jitter));
-      const duration = 7.8 + rng() * 0.8; // 7.8s - 8.6s
+      const duration = 9.5 + rng() * 1.5; // 9.5s - 11.0s slow traversal
 
-      // Stagger photos alternating left and right with subtle tilt
+      // Gentle lateral position (-6% to +6%) to keep photo fully on screen
       const side = idx % 2 === 0 ? -1 : 1;
-      const xPercent = side * (8 + rng() * 10);
-      const rotZ = side * (2.5 + rng() * 3.5);
-      const rotY = -side * (4 + rng() * 4);
+      const xPercent = side * (4 + rng() * 5);
+      const rotZ = side * (1.5 + rng() * 2.0);
+      const rotY = -side * (3 + rng() * 3);
 
       events.push({
         id: `photo-hero-${idx}`,
@@ -319,10 +331,10 @@ export function generateLoveStreamSchedule({
         xPercent: Math.round(xPercent * 10) / 10,
         yStartVh: -26,
         yEndVh: 120,
-        zDepthPx: 110, // positioned forward for crisp prominence
+        zDepthPx: 90, // positioned forward for crisp prominence
         scaleStart: 0.85,
-        scaleFocus: 1.02,
-        scaleEnd: 1.08,
+        scaleFocus: 1.0,
+        scaleEnd: 1.06,
         rotateZDeg: Math.round(rotZ * 10) / 10,
         rotateYDeg: Math.round(rotY * 10) / 10,
         photoUrl: img.url,

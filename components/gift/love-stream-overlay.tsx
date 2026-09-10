@@ -34,11 +34,11 @@ export function LoveStreamOverlay({
       }}
     >
       <style jsx>{`
-        /* Smooth, Continuous 3D Waterfall Rain Motion from Top to Bottom */
+        /* Slow, Silky-smooth Continuous 3D Waterfall Rain Motion from Top to Bottom */
         @keyframes loveStreamWaterfall {
           0% {
             transform: translate3d(
-                calc(-50% + var(--flow-x-drift) * -0.25),
+                calc(-50% + var(--flow-x-drift) * -0.2),
                 var(--flow-y-start),
                 var(--flow-z-depth)
               )
@@ -47,28 +47,28 @@ export function LoveStreamOverlay({
               rotateY(var(--flow-rot-y));
             opacity: 0;
           }
-          14% {
+          15% {
             opacity: var(--flow-opacity-focus);
           }
           50% {
             transform: translate3d(
                 -50%,
                 46vh,
-                calc(var(--flow-z-depth) * 1.05)
+                calc(var(--flow-z-depth) * 1.04)
               )
               scale(var(--flow-scale-focus))
-              rotateZ(calc(var(--flow-rot-z) * 0.4))
+              rotateZ(calc(var(--flow-rot-z) * 0.3))
               rotateY(0deg);
             opacity: var(--flow-opacity-focus);
           }
-          86% {
+          85% {
             opacity: var(--flow-opacity-focus);
           }
           100% {
             transform: translate3d(
-                calc(-50% + var(--flow-x-drift) * 0.25),
+                calc(-50% + var(--flow-x-drift) * 0.2),
                 var(--flow-y-end),
-                calc(var(--flow-z-depth) * 1.15)
+                calc(var(--flow-z-depth) * 1.12)
               )
               scale(var(--flow-scale-end))
               rotateZ(var(--flow-rot-z))
@@ -91,7 +91,7 @@ export function LoveStreamOverlay({
 
         .anim-stream-waterfall {
           animation-name: loveStreamWaterfall;
-          animation-timing-function: cubic-bezier(0.3, 0, 0.7, 1);
+          animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
           animation-fill-mode: forwards;
           will-change: transform, opacity;
         }
@@ -199,13 +199,13 @@ export function LoveStreamOverlay({
               className="absolute top-0 anim-stream-waterfall opacity-0 pointer-events-none"
               style={animCustomProps}
             >
-              <div className="relative w-[min(66vw,290px)] aspect-[4/5] rounded-2xl overflow-hidden p-1 bg-gradient-to-br from-cyan-400/40 via-rose-500/30 to-blue-950/80 shadow-[0_0_35px_rgba(56,189,248,0.45),0_15px_45px_rgba(0,0,0,0.85)] border border-cyan-300/40 backdrop-blur-sm">
+              <div className="relative w-[min(64vw,280px)] aspect-[4/5] rounded-2xl overflow-hidden p-1 bg-gradient-to-br from-cyan-400/40 via-rose-500/30 to-blue-950/80 shadow-[0_0_35px_rgba(56,189,248,0.45),0_15px_45px_rgba(0,0,0,0.85)] border border-cyan-300/40 backdrop-blur-sm">
                 <div className="relative w-full h-full rounded-xl overflow-hidden bg-zinc-950">
                   <Image
                     src={event.photoUrl}
                     alt="Love memory"
                     fill
-                    sizes="(max-width: 640px) 66vw, 290px"
+                    sizes="(max-width: 640px) 64vw, 280px"
                     className="object-cover"
                     unoptimized
                   />
@@ -245,26 +245,28 @@ export function LoveStreamOverlay({
             "0 0 12px #FDE68A, 0 0 25px #F59E0B, 0 0 45px rgba(245,158,11,0.5), 0 2px 12px rgba(0,0,0,0.95)";
         }
 
+        const isShort = (event.text || "").length <= 14;
+
         return (
           <div
             key={event.id}
-            className={`absolute top-0 anim-stream-waterfall opacity-0 text-center pointer-events-none ${
+            className={`absolute top-0 anim-stream-waterfall opacity-0 text-center pointer-events-none flex items-center justify-center ${
               isForeground
-                ? "w-[min(94vw,480px)]"
+                ? "w-[min(88vw,420px)]"
                 : isPrimary
-                ? "w-[min(88vw,400px)]"
-                : "max-w-[260px]"
+                ? "w-[min(82vw,360px)]"
+                : "max-w-[220px]"
             }`}
             style={animCustomProps}
           >
             <h2
-              className={`leading-[1.2] select-none px-2 ${textColor} ${
+              className={`leading-[1.25] select-none px-2 ${textColor} ${
                 isForeground
-                  ? "font-bold tracking-normal whitespace-nowrap"
+                  ? "font-bold tracking-normal"
                   : isPrimary
-                  ? "font-semibold tracking-wide whitespace-nowrap"
+                  ? "font-semibold tracking-wide"
                   : "font-normal tracking-wide"
-              }`}
+              } ${isShort ? "whitespace-nowrap" : "break-words whitespace-normal"}`}
               style={{
                 fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                 fontSize: `${event.fontSizePx}px`,

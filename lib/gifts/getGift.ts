@@ -17,27 +17,6 @@ function getPublicStorageUrl(bucket: string, relativePath: string): string {
 }
 
 /**
- * Derives clean, human-readable story messages from a full letter text
- */
-function deriveStoryMessagesFromText(rawText: string): GiftMessage[] {
-  if (!rawText) return [];
-
-  const sentences = rawText
-    .split(/[.\n;!?]+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length >= 3);
-
-  if (sentences.length === 0) {
-    return [{ content: rawText.slice(0, 140), sort_order: 0 }];
-  }
-
-  return sentences.slice(0, 8).map((sentence, idx) => ({
-    content: sentence.length > 150 ? sentence.slice(0, 147) + "..." : sentence,
-    sort_order: idx,
-  }));
-}
-
-/**
  * Fetches a single gift and its associated media by its unique slug using the server-side admin client.
  * Returns null if the gift does not exist.
  */
@@ -146,10 +125,10 @@ export async function getGiftBySlug(
       if (!msgError && msgData && msgData.length > 0) {
         storyMessages = msgData as GiftMessage[];
       } else {
-        storyMessages = deriveStoryMessagesFromText(giftData.message);
+        storyMessages = [];
       }
     } catch {
-      storyMessages = deriveStoryMessagesFromText(giftData.message);
+      storyMessages = [];
     }
 
     return {
@@ -263,7 +242,7 @@ export async function getAllGiftsForAdmin(
       const storyMessages =
         userStoryMsgs && userStoryMsgs.length > 0
           ? userStoryMsgs
-          : deriveStoryMessagesFromText(gift.message);
+          : [];
 
       return {
         ...gift,
