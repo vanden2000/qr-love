@@ -32,16 +32,28 @@ export function GiftAudioPlayer({
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
 
   // 1. Initial Seek to startSeconds before first play
+  const applyStartSeconds = useCallback(() => {
+    if (!audioRef.current || startSeconds <= 0) return;
+    const dur = audioRef.current.duration;
+    if (audioRef.current.readyState >= 1 && isFinite(dur) && dur > 0) {
+      const clamped = Math.min(startSeconds, Math.max(0, dur - 1));
+      try {
+        audioRef.current.currentTime = clamped;
+        setCurrentTime(clamped);
+        setHasInitializedStart(true);
+      } catch (err) {
+        console.warn("Could not seek audio currentTime:", err);
+      }
+    }
+  }, [startSeconds]);
+
   const handleLoadedMetadata = () => {
     if (!audioRef.current) return;
     const dur = audioRef.current.duration;
     if (isFinite(dur) && dur > 0) {
       setDuration(dur);
       if (!hasInitializedStart && startSeconds > 0) {
-        const clamped = Math.min(startSeconds, Math.max(0, dur - 1));
-        audioRef.current.currentTime = clamped;
-        setCurrentTime(clamped);
-        setHasInitializedStart(true);
+        applyStartSeconds();
       }
     }
   };
@@ -60,25 +72,34 @@ export function GiftAudioPlayer({
     audioRef.current.muted = isMuted;
 
     if (isPlaying && !isMuted) {
-      // If start position hasn't been set yet and metadata is already available
-      if (!hasInitializedStart && startSeconds > 0 && audioRef.current.duration) {
-        audioRef.current.currentTime = Math.min(
-          startSeconds,
-          Math.max(0, audioRef.current.duration - 1)
-        );
-        setHasInitializedStart(true);
+      // If start position hasn't been set yet or needs syncing on first playback
+      if (startSeconds > 0 && !hasInitializedStart) {
+        if (audioRef.current.readyState >= 1) {
+          applyStartSeconds();
+        } else {
+          // Slow network fallback: attach one-time listener when metadata loads
+          const onReadyToSeek = () => {
+            applyStartSeconds();
+          };
+          audioRef.current.addEventListener("loadedmetadata", onReadyToSeek, { once: true });
+          audioRef.current.addEventListener("canplay", onReadyToSeek, { once: true });
+        }
       }
 
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          console.warn("Audio play prevented or interrupted:", err);
-        });
+      try {
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((err) => {
+            console.warn("Audio play prevented or interrupted:", err);
+          });
+        }
+      } catch (playErr) {
+        console.warn("Direct audio play error:", playErr);
       }
     } else {
       audioRef.current.pause();
     }
-  }, [isPlaying, isMuted, audioUrl, startSeconds, hasInitializedStart]);
+  }, [isPlaying, isMuted, audioUrl, startSeconds, hasInitializedStart, applyStartSeconds]);
 
   // 3. Handle Replay -> Restarts strictly from configured startSeconds!
   useEffect(() => {
@@ -89,11 +110,15 @@ export function GiftAudioPlayer({
           ? Math.min(startSeconds, Math.max(0, audioRef.current.duration - 1))
           : startSeconds;
 
-      audioRef.current.currentTime = resetTime;
+      try {
+        audioRef.current.currentTime = resetTime;
+      } catch {}
       setCurrentTime(resetTime);
 
       if (isPlaying && !isMuted) {
-        audioRef.current.play().catch(() => {});
+        try {
+          audioRef.current.play().catch(() => {});
+        } catch {}
       }
     }
   }, [replayTrigger, isPlaying, isMuted, audioUrl, startSeconds]);
@@ -141,12 +166,12 @@ export function GiftAudioPlayer({
 
   return (
     <>
-      {/* Background Audio Element */}
+      {/* Background Audio Element with preload auto for Safari & Slow Networks */}
       <audio
         ref={audioRef}
         src={audioUrl}
         loop
-        preload="metadata"
+        preload="auto"
         onLoadedMetadata={handleLoadedMetadata}
         onTimeUpdate={handleTimeUpdate}
         className="hidden"

@@ -147,17 +147,57 @@ export function AudioStartEditor({
     } catch {}
   };
 
+  // Helper to adjust start time by delta seconds
+  const adjustSeconds = (delta: number) => {
+    if (!isLoaded || disabled) return;
+    const maxAllowed = Math.max(0, duration > 0 ? duration - 1 : 0);
+    const newSec = Math.max(0, Math.min(maxAllowed, Number((value + delta).toFixed(1))));
+    onChange(newSec);
+    setCurrentTime(newSec);
+    if (audioRef.current) {
+      audioRef.current.currentTime = newSec;
+    }
+  };
+
+  // Direct MM:SS manual input handling
+  const currentMinutes = Math.floor(value / 60);
+  const currentRemainingSeconds = Math.floor(value % 60);
+
+  const handleMinutesChange = (mStr: string) => {
+    if (!isLoaded || disabled) return;
+    const m = Math.max(0, parseInt(mStr, 10) || 0);
+    const maxAllowed = Math.max(0, duration > 0 ? duration - 1 : 0);
+    const newSec = Math.min(maxAllowed, m * 60 + currentRemainingSeconds);
+    onChange(newSec);
+    setCurrentTime(newSec);
+    if (audioRef.current) {
+      audioRef.current.currentTime = newSec;
+    }
+  };
+
+  const handleSecondsChange = (sStr: string) => {
+    if (!isLoaded || disabled) return;
+    const s = Math.max(0, Math.min(59, parseInt(sStr, 10) || 0));
+    const maxAllowed = Math.max(0, duration > 0 ? duration - 1 : 0);
+    const newSec = Math.min(maxAllowed, currentMinutes * 60 + s);
+    onChange(newSec);
+    setCurrentTime(newSec);
+    if (audioRef.current) {
+      audioRef.current.currentTime = newSec;
+    }
+  };
+
   // Percentages for visual timeline
   const playheadPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const startMarkerPercent = duration > 0 ? (value / duration) * 100 : 0;
 
   return (
     <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3.5 shadow-inner">
-      {/* Hidden Native Audio Element */}
+      {/* Hidden Native Audio Element with preload auto for Safari */}
       <audio
         ref={audioRef}
         src={audioSrc}
-        preload="metadata"
+        preload="auto"
         onLoadedMetadata={handleLoadedMetadata}
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleEnded}
@@ -195,7 +235,7 @@ export function AudioStartEditor({
       </div>
 
       {/* Seek / Scrub Timeline with Large Touch Area */}
-      <div className="space-y-1.5 select-none">
+      <div className="space-y-2 select-none">
         <div
           ref={trackRef}
           onPointerDown={handlePointerDown}
@@ -233,29 +273,96 @@ export function AudioStartEditor({
           </div>
         </div>
 
-        {/* Start Offset Readout & Helper */}
-        <div className="flex items-center justify-between text-xs pt-0.5">
-          <div className="flex items-center gap-1.5">
-            <span className="text-zinc-400">Bắt đầu nhạc từ:</span>
-            <span className="font-mono font-semibold text-rose-300 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800/50">
-              {formatAudioTime(value)}
+        {/* Start Offset Readout & Direct Fine-Tuning Controls */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 pt-1 bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800/80">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-zinc-300 font-medium">Bắt đầu từ:</span>
+
+            {/* Direct Minute : Second Input */}
+            <div className="inline-flex items-center gap-1 bg-zinc-950 px-2 py-1 rounded-lg border border-zinc-700">
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={currentMinutes}
+                onChange={(e) => handleMinutesChange(e.target.value)}
+                disabled={!isLoaded || disabled}
+                className="w-7 text-center text-xs font-mono font-semibold text-rose-300 bg-transparent focus:outline-none focus:text-white"
+                title="Số phút"
+              />
+              <span className="text-zinc-500 font-mono text-xs">:</span>
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={currentRemainingSeconds < 10 ? `0${currentRemainingSeconds}` : currentRemainingSeconds}
+                onChange={(e) => handleSecondsChange(e.target.value)}
+                disabled={!isLoaded || disabled}
+                className="w-7 text-center text-xs font-mono font-semibold text-rose-300 bg-transparent focus:outline-none focus:text-white"
+                title="Số giây"
+              />
+            </div>
+
+            <span className="text-[11px] text-zinc-400 font-mono">
+              ({value.toFixed(1)}s)
             </span>
           </div>
 
-          {value > 0 && (
+          {/* Precision Fine-Tuning Step Buttons [-5s], [-1s], [+1s], [+5s] */}
+          <div className="flex items-center gap-1.5 self-end sm:self-center">
             <button
               type="button"
-              onClick={handleResetStart}
-              disabled={disabled || !isLoaded}
-              className="text-[11px] text-zinc-400 hover:text-zinc-200 underline cursor-pointer"
+              onClick={() => adjustSeconds(-5)}
+              disabled={!isLoaded || disabled || value <= 0}
+              className="px-2 py-1 text-[11px] font-mono font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 active:scale-95 transition-all disabled:opacity-40 cursor-pointer"
+              title="Lùi 5 giây"
             >
-              Phát từ 00:00
+              -5s
             </button>
-          )}
+            <button
+              type="button"
+              onClick={() => adjustSeconds(-1)}
+              disabled={!isLoaded || disabled || value <= 0}
+              className="px-2 py-1 text-[11px] font-mono font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 active:scale-95 transition-all disabled:opacity-40 cursor-pointer"
+              title="Lùi 1 giây"
+            >
+              -1s
+            </button>
+            <button
+              type="button"
+              onClick={() => adjustSeconds(1)}
+              disabled={!isLoaded || disabled}
+              className="px-2 py-1 text-[11px] font-mono font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 active:scale-95 transition-all disabled:opacity-40 cursor-pointer"
+              title="Tiến 1 giây"
+            >
+              +1s
+            </button>
+            <button
+              type="button"
+              onClick={() => adjustSeconds(5)}
+              disabled={!isLoaded || disabled}
+              className="px-2 py-1 text-[11px] font-mono font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 active:scale-95 transition-all disabled:opacity-40 cursor-pointer"
+              title="Tiến 5 giây"
+            >
+              +5s
+            </button>
+
+            {value > 0 && (
+              <button
+                type="button"
+                onClick={handleResetStart}
+                disabled={disabled || !isLoaded}
+                className="ml-1 text-[11px] text-zinc-400 hover:text-rose-300 underline cursor-pointer"
+                title="Đặt lại về 00:00"
+              >
+                Về 0s
+              </button>
+            )}
+          </div>
         </div>
 
-        <p className="text-[11px] text-zinc-500 leading-relaxed pt-1">
-          Kéo thanh nhạc đến đúng đoạn bạn muốn phát khi người nhận mở món quà.
+        <p className="text-[11px] text-zinc-500 leading-relaxed pt-0.5">
+          Nhập số phút:giây hoặc bấm nút tinh chỉnh để nhạc bắt đầu ngay khúc điệp khúc bạn thích.
         </p>
       </div>
 

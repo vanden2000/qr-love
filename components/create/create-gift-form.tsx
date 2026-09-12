@@ -42,6 +42,22 @@ export function CreateGiftForm() {
   const [occasion, setOccasion] = useState<OccasionType>("LOVE_ANNIVERSARY");
   const [pronoun, setPronoun] = useState<PronounType>("HE_TO_SHE");
 
+  const [isStoryCustomized, setIsStoryCustomized] = useState(false);
+  const [isMessageCustomized, setIsMessageCustomized] = useState(false);
+
+  const getCategoryIdForRelationship = (rel: RelationshipType): string => {
+    switch (rel) {
+      case "FRIENDSHIP":
+        return "a2222222-2222-2222-2222-222222222222"; // Cổ vũ & Đồng hành
+      case "FAMILY":
+        return "a3333333-3333-3333-3333-333333333333"; // Động viên & Biết ơn
+      case "COLLEAGUE":
+        return "a4444444-4444-4444-4444-444444444444"; // Chữa lành & Bình an
+      default:
+        return "a1111111-1111-1111-1111-111111111111"; // Yêu thương
+    }
+  };
+
   const currentPreset = getPresetSuggestion(relationship, occasion, pronoun);
 
   const [formData, setFormData] = useState({
@@ -50,7 +66,7 @@ export function CreateGiftForm() {
     startDate: "",
     title: currentPreset.defaultTitle,
     message: currentPreset.sampleMessage,
-    streamPhraseCategoryId: "a1111111-1111-1111-1111-111111111111",
+    streamPhraseCategoryId: getCategoryIdForRelationship("COUPLE"),
   });
 
   const [storyMessages, setStoryMessages] = useState<string[]>([
@@ -93,6 +109,9 @@ export function CreateGiftForm() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    if (name === "title" || name === "message") {
+      setIsMessageCustomized(true);
+    }
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -101,14 +120,30 @@ export function CreateGiftForm() {
   };
 
   // Quick Apply Smart Suggestions
-  const handleApplyPreset = (rel = relationship, occ = occasion, pro = pronoun) => {
+  const handleApplyPreset = (
+    rel = relationship,
+    occ = occasion,
+    pro = pronoun,
+    forceOverwrite = false
+  ) => {
     const p = getPresetSuggestion(rel, occ, pro);
+    const catId = getCategoryIdForRelationship(rel);
+
     setFormData((prev) => ({
       ...prev,
-      title: p.defaultTitle,
-      message: p.sampleMessage,
+      title: !isMessageCustomized || forceOverwrite ? p.defaultTitle : prev.title,
+      message: !isMessageCustomized || forceOverwrite ? p.sampleMessage : prev.message,
+      streamPhraseCategoryId: catId,
     }));
-    setStoryMessages([...p.storyMessages.slice(0, 15)]);
+
+    if (!isStoryCustomized || forceOverwrite) {
+      setStoryMessages([...p.storyMessages.slice(0, 15)]);
+      if (forceOverwrite) {
+        setIsStoryCustomized(false);
+        setIsMessageCustomized(false);
+      }
+    }
+
     if (error) setError(null);
   };
 
@@ -117,7 +152,23 @@ export function CreateGiftForm() {
     const nextOcc = available[0]?.value || ("LOVE_ANNIVERSARY" as OccasionType);
     setRelationship(newRel);
     setOccasion(nextOcc);
-    handleApplyPreset(newRel, nextOcc, pronoun);
+
+    // If user already typed custom story messages, confirm before overwriting
+    if (isStoryCustomized) {
+      const confirmOverwrite = typeof window !== "undefined"
+        ? window.confirm(
+            "Bạn đã chỉnh sửa danh sách lời muốn nói. Bạn có muốn đổi sang bộ câu gợi ý mẫu của chủ đề mới không?"
+          )
+        : false;
+      if (confirmOverwrite) {
+        handleApplyPreset(newRel, nextOcc, pronoun, true);
+      } else {
+        // Keep custom messages, but still update category & title if title wasn't customized
+        handleApplyPreset(newRel, nextOcc, pronoun, false);
+      }
+    } else {
+      handleApplyPreset(newRel, nextOcc, pronoun, true);
+    }
   };
 
   const handleOccasionChange = (newOcc: OccasionType) => {
@@ -132,6 +183,7 @@ export function CreateGiftForm() {
 
   // Story Messages Handlers
   const handleStoryMessageChange = (index: number, value: string) => {
+    setIsStoryCustomized(true);
     setStoryMessages((prev) => {
       const next = [...prev];
       next[index] = value;
@@ -141,22 +193,26 @@ export function CreateGiftForm() {
   };
 
   const handleAddStoryMessage = () => {
+    setIsStoryCustomized(true);
     if (storyMessages.length >= MAX_STORY_MESSAGES) return;
     const pool = currentPreset.storyMessages;
-    const nextSuggestion = pool[storyMessages.length % pool.length] || "Yêu thương đong đầy";
+    const nextSuggestion = pool[storyMessages.length % pool.length] || "Vui vẻ hạnh phúc";
     setStoryMessages((prev) => [...prev, nextSuggestion]);
   };
 
   const handleApplyAllSuggestions = () => {
+    setIsStoryCustomized(false);
     setStoryMessages([...currentPreset.storyMessages.slice(0, 18)]);
   };
 
   const handleRemoveStoryMessage = (index: number) => {
+    setIsStoryCustomized(true);
     if (storyMessages.length <= 1) return;
     setStoryMessages((prev) => prev.filter((_, idx) => idx !== index));
   };
 
   const handleMoveStoryMessage = (index: number, direction: "up" | "down") => {
+    setIsStoryCustomized(true);
     const targetIndex = direction === "up" ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= storyMessages.length) return;
 

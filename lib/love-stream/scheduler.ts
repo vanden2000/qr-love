@@ -61,26 +61,77 @@ export interface ScheduleOptions {
   replayCount: number;
 }
 
-const DEFAULT_FALLBACK_PHRASES = [
-  "Em yêu anh",
-  "Anh yêu em",
-  "vững vàng",
-  "thành công",
-  "Happy Anniversary",
-  "Chúc anh luôn vui vẻ",
-  "Chúc em luôn vui vẻ",
-  "Luôn bên nhau nhé",
-  "1000 Days",
-  "Có em là đủ",
-  "Tự hào về em",
-  "Anh luôn ở đây",
-  "Bình yên bên nhau",
-  "Mãi mãi yêu em",
-  "Thương em nhiều lắm",
-  "Yêu thương đong đầy",
-  "Nắm chặt tay nhau",
-  "Hạnh phúc mỗi ngày",
-];
+const FALLBACK_PHRASES_PER_RELATIONSHIP: Record<RelationshipType, string[]> = {
+  COUPLE: [
+    "Em yêu anh",
+    "Anh yêu em",
+    "Có em là đủ",
+    "Happy Anniversary",
+    "Bình yên bên nhau",
+    "Luôn bên nhau nhé",
+    "Mãi mãi yêu em",
+    "Thương em nhiều lắm",
+    "Yêu thương đong đầy",
+    "Nắm chặt tay nhau",
+    "Hạnh phúc mỗi ngày",
+    "Cùng nhau già đi",
+    "Mỗi ngày thêm yêu",
+    "Tình yêu diệu kỳ",
+  ],
+  FRIENDSHIP: [
+    "Mãi là bạn thân nhé",
+    "Bạn chí cốt",
+    "Tri kỷ một đời",
+    "Cảm ơn vì đã luôn ở bên",
+    "Bao giờ cũng có tao",
+    "Vững vàng bước tiếp",
+    "Chúc bạn luôn thành công",
+    "Mãi đỉnh",
+    "Đồng hành cùng nhau",
+    "Thanh xuân rực rỡ",
+    "Luôn vui vẻ hạnh phúc",
+    "Bạn bè tốt nhất",
+    "Tự hào về bạn",
+    "Mãi bên nhau nha",
+  ],
+  FAMILY: [
+    "Con yêu Bố Mẹ",
+    "Gia đình là tất cả",
+    "Bình an mỗi ngày",
+    "Sức khỏe dồi dào",
+    "Tổ ấm thân yêu",
+    "Cảm ơn công ơn sinh thành",
+    "Mãi yêu gia đình",
+    "Hạnh phúc sum vầy",
+    "Luôn mạnh khỏe nhé",
+    "Niềm vui trọn vẹn",
+    "Con thương Bố Mẹ",
+  ],
+  CRUSH: [
+    "Thích bạn từ cái nhìn đầu",
+    "Nụ cười của bạn",
+    "Có bạn là điều tuyệt vời",
+    "Luôn mỉm cười nhé",
+    "Chúc bạn luôn vui vẻ",
+    "Thầm thương trộm nhớ",
+    "Dành trọn chân thành",
+    "Mỗi ngày đều nhớ bạn",
+    "Ấm áp mỗi khi thấy bạn",
+    "Bạn là ánh nắng",
+  ],
+  COLLEAGUE: [
+    "Chúc luôn thành công",
+    "Cảm ơn sự đồng hành",
+    "Hợp tác phát triển",
+    "Công việc thuận lợi",
+    "Vững vàng tiến bước",
+    "Đạt mọi mục tiêu",
+    "Thành tựu rực rỡ",
+    "Đồng đội tuyệt vời",
+    "Trân trọng sự nỗ lực",
+    "Vươn xa hơn nữa",
+  ],
+};
 
 /**
  * Generates dense, luminous 3D waterfall stream events:
@@ -144,7 +195,17 @@ export function generateLoveStreamSchedule({
   if (gift.receiver_name) customPhrases.push(gift.receiver_name.trim());
   if (gift.sender_name) customPhrases.push(gift.sender_name.trim());
   if (anniversaryLabel) customPhrases.push(anniversaryLabel);
-  customPhrases.push("Happy Anniversary");
+
+  if (rel === "COUPLE" || rel === "CRUSH") {
+    customPhrases.push("Happy Anniversary");
+  } else if (rel === "FRIENDSHIP") {
+    customPhrases.push("Best Friends Forever");
+    customPhrases.push("Tri kỷ");
+  } else if (rel === "FAMILY") {
+    customPhrases.push("Gia đình là tất cả");
+  } else if (rel === "COLLEAGUE") {
+    customPhrases.push("Trân trọng hợp tác");
+  }
 
   // Admin / Category Stream Phrases
   if (gift.stream_phrases && gift.stream_phrases.length > 0) {
@@ -156,8 +217,9 @@ export function generateLoveStreamSchedule({
     });
   }
 
-  // Fallbacks if pool is sparse
-  DEFAULT_FALLBACK_PHRASES.forEach((p) => {
+  // Fallbacks if pool is sparse (Strictly tailored to relationship!)
+  const fallbackList = FALLBACK_PHRASES_PER_RELATIONSHIP[rel] || FALLBACK_PHRASES_PER_RELATIONSHIP.COUPLE;
+  fallbackList.forEach((p) => {
     if (!customPhrases.includes(p)) customPhrases.push(p);
   });
 
@@ -248,7 +310,15 @@ export function generateLoveStreamSchedule({
       phrase = userStoryPhrases[userPhraseIdx % userStoryPhrases.length];
       userPhraseIdx++;
     } else {
-      phrase = customPhrases[Math.floor(rng() * customPhrases.length)] || "Em yêu anh";
+      const defaultSingleFallback =
+        rel === "FRIENDSHIP"
+          ? "Mãi là bạn thân"
+          : rel === "FAMILY"
+          ? "Gia đình là tất cả"
+          : rel === "COLLEAGUE"
+          ? "Chúc luôn thành công"
+          : "Em yêu anh";
+      phrase = customPhrases[Math.floor(rng() * customPhrases.length)] || defaultSingleFallback;
     }
 
     // Lane positioning
@@ -422,6 +492,15 @@ export function generateLoveStreamSchedule({
   // CHAPTER 4: FINAL JOURNEY CARD (Triggered at 120.0s / 2 Minutes)
   // =========================================================================
   const separator = rel === "FRIENDSHIP" ? " ✨ " : rel === "COLLEAGUE" ? " ✦ " : " ♡ ";
+  const defaultSender =
+    rel === "FRIENDSHIP"
+      ? "Bạn thân"
+      : rel === "FAMILY"
+      ? "Gia đình"
+      : rel === "COLLEAGUE"
+      ? "Đồng nghiệp"
+      : "Người thương";
+
   events.push({
     id: "final-journey-card",
     type: "FINAL_CARD",
@@ -437,7 +516,7 @@ export function generateLoveStreamSchedule({
     scaleEnd: 1.0,
     rotateZDeg: 0,
     rotateYDeg: 0,
-    text: `${gift.sender_name || "Người thương"}${separator}${gift.receiver_name}`,
+    text: `${gift.sender_name || defaultSender}${separator}${gift.receiver_name}`,
     subtext: anniversarySubtitle || (gift.title ? `“${gift.title}”` : preset.endingCardTitle),
     colorTone: "neon-cyan",
     fontSizePx: 26,
