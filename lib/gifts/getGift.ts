@@ -271,9 +271,10 @@ export async function getAllGiftsForAdmin(
       if (relativePath.startsWith(`${bucket}/`)) {
         relativePath = relativePath.slice(bucket.length + 1);
       }
+      const publicUrl = relativePath ? getPublicStorageUrl(bucket, relativePath) : (m.url || "");
       list.push({
         ...m,
-        url: m.url || getPublicStorageUrl(bucket, relativePath),
+        url: publicUrl || m.url,
       });
       mediaMap.set(m.gift_id, list);
     });

@@ -216,11 +216,11 @@ export function AudioStartEditor({
 
   return (
     <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3.5 shadow-inner">
-      {/* Hidden Native Audio Element with preload auto for Safari */}
+      {/* Hidden Native Audio Element with lightweight metadata preload for fast loading */}
       <audio
         ref={audioRef}
         src={audioSrc}
-        preload="auto"
+        preload="metadata"
         onLoadedMetadata={handleLoadedMetadata}
         onLoadedData={handleLoadedMetadata}
         onCanPlay={handleLoadedMetadata}

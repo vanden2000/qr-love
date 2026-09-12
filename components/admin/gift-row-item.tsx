@@ -314,9 +314,21 @@ export function GiftRowItem({
                 />
               </div>
             )}
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-rose-500/20 to-pink-600/20 border border-rose-500/30 flex items-center justify-center text-xs font-bold text-rose-300 shrink-0 uppercase">
-              {gift.receiver_name ? gift.receiver_name.charAt(0) : "❤️"}
-            </div>
+            {existingImages.length > 0 ? (
+              <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-zinc-700/80 shrink-0 bg-zinc-900 shadow-sm">
+                <Image
+                  src={existingImages[0].url}
+                  alt={gift.receiver_name}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500/20 to-pink-600/20 border border-rose-500/30 flex items-center justify-center text-xs font-bold text-rose-300 shrink-0 uppercase">
+                {gift.receiver_name ? gift.receiver_name.charAt(0) : "❤️"}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-1.5 flex-wrap">
                 <span className="font-bold text-zinc-100 text-sm tracking-tight truncate">
@@ -549,11 +561,11 @@ export function GiftRowItem({
                   <label className="text-xs font-medium uppercase tracking-wider text-cyan-300/90">
                     💬 Quản lý lời muốn nói ({storyMessages.length}/25)
                   </label>
-                  <span className="text-[11px] text-zinc-400">• Chữ chạy trong không gian 3D</span>
+                  <span className="text-[11px] text-cyan-400 font-semibold">• Chỉ hiện cùng phần món quà 3D</span>
                 </div>
-                <p className="text-[11px] text-zinc-400">
-                  Các câu ngắn này sẽ trôi từ trên xuống trong không gian 3D cùng ảnh kỷ niệm và trái tim phát sáng.
-                </p>
+                <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-800/50 text-[11px] text-cyan-200/90 leading-relaxed">
+                  💡 <strong>Quy tắc hiển thị:</strong> Các câu ngắn này <em>chỉ xuất hiện trôi trong không gian món quà 3D</em> cùng mô hình và hiệu ứng. Khi người nhận bấm &ldquo;Đọc thư&rdquo;, giao diện chỉ hiển thị duy nhất <strong>Bức thư trọn vẹn</strong> ở trên và <strong>Album hình ảnh</strong> (hoàn toàn không hiển thị các câu ngắn này).
+                </div>
 
                 <div className="space-y-2">
                   {storyMessages.map((msg, idx) => (
