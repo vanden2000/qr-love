@@ -131,8 +131,57 @@ export async function getGiftBySlug(
       storyMessages = [];
     }
 
+    // 1. Resolve Relationship & Occasion (Fallback to theme column)
+    let relationshipType = (giftData.relationship_type as string) || "";
+    let occasionType = (giftData.occasion_type as string) || "";
+    let pronounType = (giftData.pronoun_type as string) || "";
+
+    if (!relationshipType && giftData.theme) {
+      const themeParts = giftData.theme.split(":");
+      const rawRel = (themeParts[0] || "").trim().toUpperCase();
+      if (["FRIENDSHIP", "FAMILY", "COLLEAGUE", "CRUSH", "COUPLE"].includes(rawRel)) {
+        relationshipType = rawRel;
+      }
+      if (themeParts[1]?.trim()) {
+        occasionType = themeParts[1].trim();
+      }
+      if (themeParts[2]?.trim()) {
+        pronounType = themeParts[2].trim();
+      }
+    }
+
+    if (!relationshipType) {
+      relationshipType = "COUPLE";
+    }
+
+    // 2. Resolve Embedded Story Messages if gift_messages table was empty
+    let cleanMessage = giftData.message || "";
+    if ((!storyMessages || storyMessages.length === 0) && cleanMessage) {
+      const match = cleanMessage.match(/<!--QR_STORY_MESSAGES_JSON:(.*?)-->/);
+      if (match && match[1]) {
+        try {
+          const parsed = JSON.parse(match[1]) as string[];
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            storyMessages = parsed.map((content, idx) => ({
+              gift_id: giftData.id,
+              content,
+              sort_order: idx,
+            }));
+          }
+        } catch (err) {
+          console.warn("Could not parse embedded story messages:", err);
+        }
+      }
+    }
+    // Clean out the hidden marker from public display message
+    cleanMessage = cleanMessage.replace(/<!--QR_STORY_MESSAGES_JSON:.*?-->/g, "").trim();
+
     return {
       ...giftData,
+      relationship_type: relationshipType,
+      occasion_type: occasionType || giftData.occasion_type || "ANNIVERSARY",
+      pronoun_type: pronounType || giftData.pronoun_type || "HE_TO_SHE",
+      message: cleanMessage,
       media: resolvedMedia,
       story_messages: storyMessages,
       stream_phrases: streamPhrases,
@@ -239,13 +288,55 @@ export async function getAllGiftsForAdmin(
     return giftsData.map((gift) => {
       const media = mediaMap.get(gift.id) || [];
       const userStoryMsgs = messagesMap.get(gift.id);
-      const storyMessages =
+      let storyMessages =
         userStoryMsgs && userStoryMsgs.length > 0
           ? userStoryMsgs
           : [];
 
+      let relationshipType = (gift.relationship_type as string) || "";
+      let occasionType = (gift.occasion_type as string) || "";
+      let pronounType = (gift.pronoun_type as string) || "";
+
+      if (!relationshipType && gift.theme) {
+        const themeParts = gift.theme.split(":");
+        const rawRel = (themeParts[0] || "").trim().toUpperCase();
+        if (["FRIENDSHIP", "FAMILY", "COLLEAGUE", "CRUSH", "COUPLE"].includes(rawRel)) {
+          relationshipType = rawRel;
+        }
+        if (themeParts[1]?.trim()) occasionType = themeParts[1].trim();
+        if (themeParts[2]?.trim()) pronounType = themeParts[2].trim();
+      }
+
+      if (!relationshipType) {
+        relationshipType = "COUPLE";
+      }
+
+      let cleanMessage = gift.message || "";
+      if (storyMessages.length === 0 && cleanMessage) {
+        const match = cleanMessage.match(/<!--QR_STORY_MESSAGES_JSON:(.*?)-->/);
+        if (match && match[1]) {
+          try {
+            const parsed = JSON.parse(match[1]) as string[];
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              storyMessages = parsed.map((content, idx) => ({
+                gift_id: gift.id,
+                content,
+                sort_order: idx,
+              }));
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+      }
+      cleanMessage = cleanMessage.replace(/<!--QR_STORY_MESSAGES_JSON:.*?-->/g, "").trim();
+
       return {
         ...gift,
+        relationship_type: relationshipType,
+        occasion_type: occasionType || gift.occasion_type || "ANNIVERSARY",
+        pronoun_type: pronounType || gift.pronoun_type || "HE_TO_SHE",
+        message: cleanMessage,
         media,
         story_messages: storyMessages,
       } as GiftWithMedia;

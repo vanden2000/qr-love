@@ -200,15 +200,24 @@ export async function createGiftAction(
         ? Math.max(0, Number(audioStartSecondsRaw))
         : 0;
 
+    const themeValue = `${relationshipType}:${occasionType}`.slice(0, 50);
+
+    // Embed story messages into message body as backup if gift_messages table is not migrated yet
+    let finalSavedMessage = message;
+    if (storyMessages.length > 0) {
+      finalSavedMessage = `${message}\n\n<!--QR_STORY_MESSAGES_JSON:${JSON.stringify(storyMessages)}-->`;
+    }
+
     while (attempts < maxAttempts) {
       const insertPayload: Record<string, unknown> = {
         slug,
         sender_name: senderName,
         receiver_name: receiverName,
         title,
-        message,
+        message: finalSavedMessage,
         start_date: startDate || null,
         status: giftStatus,
+        theme: themeValue,
         relationship_type: relationshipType,
         occasion_type: occasionType,
         pronoun_type: pronounType,
@@ -227,7 +236,8 @@ export async function createGiftAction(
         .select("id, slug")
         .single();
 
-      // Fallback: If any new columns are not in DB schema yet
+      // Fallback: If relationship_type or other new columns are not in remote DB schema yet,
+      // retry without those unmigrated columns, but CRITICALLY KEEP theme, audio_start_seconds, and stream_phrase_category_id!
       if (
         error &&
         (error.message?.includes("relationship_type") ||
@@ -238,16 +248,24 @@ export async function createGiftAction(
           error.code === "PGRST204" ||
           error.code === "42703")
       ) {
-        console.warn("Retrying gift insert with core payload:", error.message);
-        const fallbackPayload = {
+        console.warn("Retrying gift insert with theme fallback:", error.message);
+        const fallbackPayload: Record<string, unknown> = {
           slug,
           sender_name: senderName,
           receiver_name: receiverName,
           title,
-          message,
+          message: finalSavedMessage,
           start_date: startDate || null,
           status: giftStatus,
+          theme: themeValue,
         };
+
+        if (audioStartSeconds > 0) {
+          fallbackPayload.audio_start_seconds = audioStartSeconds;
+        }
+        if (streamPhraseCategoryId) {
+          fallbackPayload.stream_phrase_category_id = streamPhraseCategoryId;
+        }
 
         const retryResult = await supabase
           .from("gifts")

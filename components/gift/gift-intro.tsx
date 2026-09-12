@@ -12,7 +12,13 @@ interface GiftIntroProps {
 }
 
 export function GiftIntro({ gift, onOpen, isExiting }: GiftIntroProps) {
-  const rel = (gift.relationship_type as RelationshipType) || "COUPLE";
+  const rel: RelationshipType = useMemo(() => {
+    const raw = (gift.relationship_type || (gift.theme ? gift.theme.split(":")[0] : "") || "").trim().toUpperCase();
+    if (["FRIENDSHIP", "FAMILY", "COLLEAGUE", "CRUSH", "COUPLE"].includes(raw)) {
+      return raw as RelationshipType;
+    }
+    return "COUPLE";
+  }, [gift.relationship_type, gift.theme]);
 
   const theme = useMemo(() => {
     switch (rel) {
@@ -22,6 +28,7 @@ export function GiftIntro({ gift, onOpen, isExiting }: GiftIntroProps) {
           glowTop: "bg-amber-500/20",
           glowBottom: "bg-cyan-950/30",
           headerTitle: "QR MEMORIES",
+          subTitle: "MÓN QUÀ KỶ NIỆM TÌNH BẠN TRI KỶ",
           calligraphy: "Best Friends Forever",
           symbol: "⭐",
           symbolSub: "✨",
@@ -32,7 +39,8 @@ export function GiftIntro({ gift, onOpen, isExiting }: GiftIntroProps) {
           btnGradient: "linear-gradient(180deg, #f59e0b 0%, #d97706 55%, #78350f 100%)",
           btnShadow: "0 0 30px rgba(245, 158, 11, 0.55), 0 0 10px rgba(251, 191, 36, 0.4), inset 0 1.5px 2px rgba(255, 255, 255, 0.6), inset 0 -2px 6px rgba(0, 0, 0, 0.5)",
           btnBorder: "1.5px solid rgba(253, 230, 138, 0.5)",
-          footerText: "Chạm để khám phá thông điệp tình bạn",
+          btnText: "⭐ MỞ QUÀ KỶ NIỆM ⭐",
+          footerText: "Chạm để khám phá dòng ký ức tình bạn",
         };
       case "FAMILY":
         return {
@@ -40,6 +48,7 @@ export function GiftIntro({ gift, onOpen, isExiting }: GiftIntroProps) {
           glowTop: "bg-orange-500/20",
           glowBottom: "bg-amber-950/30",
           headerTitle: "QR FAMILY",
+          subTitle: "MÓN QUÀ TÌNH THÂN GIA ĐÌNH ẤM ÁP",
           calligraphy: "Warmth & Gratitude Always",
           symbol: "🌸",
           symbolSub: "🏡",
@@ -50,6 +59,7 @@ export function GiftIntro({ gift, onOpen, isExiting }: GiftIntroProps) {
           btnGradient: "linear-gradient(180deg, #ea580c 0%, #c2410c 55%, #7c2d12 100%)",
           btnShadow: "0 0 30px rgba(234, 88, 12, 0.55), 0 0 10px rgba(251, 146, 60, 0.4), inset 0 1.5px 2px rgba(255, 255, 255, 0.6), inset 0 -2px 6px rgba(0, 0, 0, 0.5)",
           btnBorder: "1.5px solid rgba(254, 215, 170, 0.5)",
+          btnText: "🌸 MỞ QUÀ GIA ĐÌNH 🌸",
           footerText: "Chạm để khám phá thông điệp gia đình",
         };
       case "COLLEAGUE":
@@ -58,6 +68,7 @@ export function GiftIntro({ gift, onOpen, isExiting }: GiftIntroProps) {
           glowTop: "bg-sky-500/20",
           glowBottom: "bg-indigo-950/30",
           headerTitle: "QR CONNECTION",
+          subTitle: "MÓN QUÀ TRI ÂN ĐỒNG HÀNH & HỢP TÁC",
           calligraphy: "Success & Harmony Together",
           symbol: "💎",
           symbolSub: "✦",
@@ -68,6 +79,7 @@ export function GiftIntro({ gift, onOpen, isExiting }: GiftIntroProps) {
           btnGradient: "linear-gradient(180deg, #0284c7 0%, #0369a1 55%, #075985 100%)",
           btnShadow: "0 0 30px rgba(2, 132, 199, 0.55), 0 0 10px rgba(56, 189, 248, 0.4), inset 0 1.5px 2px rgba(255, 255, 255, 0.6), inset 0 -2px 6px rgba(0, 0, 0, 0.5)",
           btnBorder: "1.5px solid rgba(186, 230, 253, 0.5)",
+          btnText: "💎 MỞ QUÀ TRI ÂN 💎",
           footerText: "Chạm để khám phá thông điệp tri ân",
         };
       default: // COUPLE & CRUSH
@@ -76,6 +88,7 @@ export function GiftIntro({ gift, onOpen, isExiting }: GiftIntroProps) {
           glowTop: "bg-rose-600/20",
           glowBottom: "bg-rose-950/30",
           headerTitle: "QR LOVE",
+          subTitle: rel === "CRUSH" ? "MÓN QUÀ THAY LỜI MUỐN NÓI" : "MÓN QUÀ YÊU THƯƠNG DÀNH CHO BẠN",
           calligraphy: "More Love Everyday",
           symbol: "♥",
           symbolSub: "♡",
@@ -86,6 +99,7 @@ export function GiftIntro({ gift, onOpen, isExiting }: GiftIntroProps) {
           btnGradient: "linear-gradient(180deg, #f43f5e 0%, #be123c 55%, #630823 100%)",
           btnShadow: "0 0 30px rgba(225, 29, 72, 0.55), 0 0 10px rgba(251, 113, 133, 0.4), inset 0 1.5px 2px rgba(255, 255, 255, 0.6), inset 0 -2px 6px rgba(0, 0, 0, 0.5)",
           btnBorder: "1.5px solid rgba(254, 205, 211, 0.45)",
+          btnText: "♥ MỞ QUÀ YÊU THƯƠNG ♥",
           footerText: "Chạm để khám phá thông điệp yêu thương",
         };
     }
@@ -157,7 +171,7 @@ export function GiftIntro({ gift, onOpen, isExiting }: GiftIntroProps) {
             className={`text-[11px] sm:text-xs uppercase tracking-[0.25em] ${theme.textColor} font-light`}
             style={{ fontFamily: "var(--font-playfair), serif" }}
           >
-            MỘT MÓN QUÀ DÀNH CHO BẠN
+            {theme.subTitle || "MỘT MÓN QUÀ DÀNH CHO BẠN"}
           </p>
 
           <div className="flex items-center justify-center gap-2 w-24 mx-auto opacity-50 py-0.5">
@@ -203,7 +217,7 @@ export function GiftIntro({ gift, onOpen, isExiting }: GiftIntroProps) {
               className="text-white font-medium text-sm sm:text-base tracking-[0.12em] drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] flex items-center gap-2 uppercase"
               style={{ fontFamily: "var(--font-playfair), serif" }}
             >
-              <span>MỞ QUÀ</span>
+              <span>{theme.btnText || "MỞ QUÀ"}</span>
               <span className="text-xs text-white/90 font-bold transition-transform duration-300 group-hover:translate-x-1">
                 ❯
               </span>

@@ -608,6 +608,53 @@ export function CreateGiftForm() {
               );
             })}
           </div>
+
+          {/* 3D Model Relationship Badge & Explicit User Explanation */}
+          <div className="mt-2 p-3 rounded-xl bg-zinc-900/90 border border-zinc-800 flex items-start gap-3 text-xs">
+            <span className="text-2xl mt-0.5">
+              {relationship === "FRIENDSHIP"
+                ? "⭐"
+                : relationship === "FAMILY"
+                ? "🌸"
+                : relationship === "COLLEAGUE"
+                ? "💎"
+                : "💖"}
+            </span>
+            <div className="flex-1 space-y-0.5">
+              <div className="font-semibold text-zinc-200 flex items-center gap-1.5 flex-wrap">
+                <span>Mô hình 3D tương ứng:</span>
+                {relationship === "FRIENDSHIP" && (
+                  <span className="text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-800/60">
+                    ⭐ Ngôi sao 3D tỏa sáng (Bạn bè & Tri kỷ)
+                  </span>
+                )}
+                {relationship === "FAMILY" && (
+                  <span className="text-orange-400 font-bold bg-orange-950/60 px-2 py-0.5 rounded-full border border-orange-800/60">
+                    🌸 Hoa sen 3D nở rộ (Gia đình & Tri ân)
+                  </span>
+                )}
+                {relationship === "COLLEAGUE" && (
+                  <span className="text-sky-400 font-bold bg-sky-950/60 px-2 py-0.5 rounded-full border border-sky-800/60">
+                    💎 Khối kim cương 3D (Đồng nghiệp & Hợp tác)
+                  </span>
+                )}
+                {(relationship === "COUPLE" || relationship === "CRUSH") && (
+                  <span className="text-rose-400 font-bold bg-rose-950/60 px-2 py-0.5 rounded-full border border-rose-800/60">
+                    💖 Trái tim 3D pha lê (Dành riêng cho Tình yêu)
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-zinc-400 leading-relaxed">
+                {relationship === "FRIENDSHIP"
+                  ? "✨ Tuyệt đối không dùng hình trái tim hay lời tình cảm yêu đương đôi lứa. Món quà sẽ ngập tràn ngôi sao 3D lấp lánh và các câu chúc tình bạn chí cốt."
+                  : relationship === "FAMILY"
+                  ? "✨ Tôn vinh tình cảm gia đình ấm áp với biểu tượng hoa sen thanh khiết và lời chúc bình an, hiếu thảo."
+                  : relationship === "COLLEAGUE"
+                  ? "✨ Khối tinh thể hiện đại, lịch sự cùng những lời chúc thành công, gắn kết bền chặt."
+                  : "✨ Biểu tượng Trái tim 3D ngọt ngào chỉ dành riêng cho tình yêu đôi lứa và lời tỏ tình chân thành."}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* 1.2 Occasion Choice & Pronouns */}

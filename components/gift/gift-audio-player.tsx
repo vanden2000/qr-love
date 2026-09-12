@@ -35,15 +35,13 @@ export function GiftAudioPlayer({
   const applyStartSeconds = useCallback(() => {
     if (!audioRef.current || startSeconds <= 0) return;
     const dur = audioRef.current.duration;
-    if (audioRef.current.readyState >= 1 && isFinite(dur) && dur > 0) {
-      const clamped = Math.min(startSeconds, Math.max(0, dur - 1));
-      try {
-        audioRef.current.currentTime = clamped;
-        setCurrentTime(clamped);
-        setHasInitializedStart(true);
-      } catch (err) {
-        console.warn("Could not seek audio currentTime:", err);
-      }
+    const targetTime = isFinite(dur) && dur > 0 ? Math.min(startSeconds, Math.max(0, dur - 0.5)) : startSeconds;
+    try {
+      audioRef.current.currentTime = targetTime;
+      setCurrentTime(targetTime);
+      setHasInitializedStart(true);
+    } catch (err) {
+      console.warn("Could not seek audio currentTime:", err);
     }
   }, [startSeconds]);
 
@@ -52,16 +50,21 @@ export function GiftAudioPlayer({
     const dur = audioRef.current.duration;
     if (isFinite(dur) && dur > 0) {
       setDuration(dur);
-      if (!hasInitializedStart && startSeconds > 0) {
-        applyStartSeconds();
-      }
+    }
+    if (startSeconds > 0) {
+      applyStartSeconds();
     }
   };
 
   const handleTimeUpdate = () => {
-    if (audioRef.current && !isDragging) {
-      setCurrentTime(audioRef.current.currentTime);
+    if (!audioRef.current || isDragging) return;
+    const curr = audioRef.current.currentTime;
+    // If browser auto-reset to 0 on play before metadata seek
+    if (startSeconds > 0 && !hasInitializedStart && curr < Math.min(startSeconds, 1.0)) {
+      applyStartSeconds();
+      return;
     }
+    setCurrentTime(curr);
   };
 
   // 2. Handle Play / Pause & Volume / Mute
@@ -72,26 +75,23 @@ export function GiftAudioPlayer({
     audioRef.current.muted = isMuted;
 
     if (isPlaying && !isMuted) {
-      // If start position hasn't been set yet or needs syncing on first playback
-      if (startSeconds > 0 && !hasInitializedStart) {
-        if (audioRef.current.readyState >= 1) {
-          applyStartSeconds();
-        } else {
-          // Slow network fallback: attach one-time listener when metadata loads
-          const onReadyToSeek = () => {
-            applyStartSeconds();
-          };
-          audioRef.current.addEventListener("loadedmetadata", onReadyToSeek, { once: true });
-          audioRef.current.addEventListener("canplay", onReadyToSeek, { once: true });
-        }
+      // Seek to start position before calling play
+      if (startSeconds > 0 && (!hasInitializedStart || audioRef.current.currentTime < 0.5)) {
+        applyStartSeconds();
       }
 
       try {
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
-          playPromise.catch((err) => {
-            console.warn("Audio play prevented or interrupted:", err);
-          });
+          playPromise
+            .then(() => {
+              if (startSeconds > 0 && audioRef.current && audioRef.current.currentTime < 0.5) {
+                applyStartSeconds();
+              }
+            })
+            .catch((err) => {
+              console.warn("Audio play prevented or interrupted:", err);
+            });
         }
       } catch (playErr) {
         console.warn("Direct audio play error:", playErr);

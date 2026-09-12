@@ -95,14 +95,27 @@ export async function updateGiftAction(
 
     const supabase = createAdminClient();
 
+    const themeValue = `${relationshipType}:${occasionType}`.slice(0, 50);
+
+    const storyMessagesRaw = formData.getAll("storyMessages") as string[];
+    const cleanedStoryMessages = storyMessagesRaw
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    let finalMessage = message;
+    if (cleanedStoryMessages.length > 0) {
+      finalMessage = `${message}\n\n<!--QR_STORY_MESSAGES_JSON:${JSON.stringify(cleanedStoryMessages)}-->`;
+    }
+
     // 1. Update basic gift fields
     const updateGiftPayload: Record<string, unknown> = {
       sender_name: senderName,
       receiver_name: receiverName,
       title,
-      message,
+      message: finalMessage,
       start_date: startDate || null,
       status: ["active", "draft", "hidden"].includes(status) ? status : "draft",
+      theme: themeValue,
       relationship_type: relationshipType,
       occasion_type: occasionType,
       pronoun_type: pronounType,
@@ -121,16 +134,12 @@ export async function updateGiftAction(
 
     if (
       giftUpdateError &&
-      (giftUpdateError.message?.includes("audio_start_seconds") ||
-        giftUpdateError.message?.includes("stream_phrase_category_id") ||
-        giftUpdateError.message?.includes("relationship_type") ||
+      (giftUpdateError.message?.includes("relationship_type") ||
         giftUpdateError.message?.includes("occasion_type") ||
         giftUpdateError.message?.includes("pronoun_type") ||
         giftUpdateError.code === "PGRST204" ||
         giftUpdateError.code === "42703")
     ) {
-      delete updateGiftPayload.audio_start_seconds;
-      delete updateGiftPayload.stream_phrase_category_id;
       delete updateGiftPayload.relationship_type;
       delete updateGiftPayload.occasion_type;
       delete updateGiftPayload.pronoun_type;
@@ -147,19 +156,22 @@ export async function updateGiftAction(
     }
 
     // 2. Update Story Messages in gift_messages table
-    const storyMessagesRaw = formData.getAll("storyMessages") as string[];
-    const storyMessages = storyMessagesRaw.map((s) => s.trim()).filter((s) => s.length > 0);
+    const storyMessages = cleanedStoryMessages;
 
     // Delete existing messages and re-insert
-    await supabase.from("gift_messages").delete().eq("gift_id", giftId);
+    try {
+      await supabase.from("gift_messages").delete().eq("gift_id", giftId);
 
-    if (storyMessages.length > 0) {
-      const messagesToInsert = storyMessages.slice(0, 25).map((content, idx) => ({
-        gift_id: giftId,
-        content: content.slice(0, 160),
-        sort_order: idx,
-      }));
-      await supabase.from("gift_messages").insert(messagesToInsert);
+      if (storyMessages.length > 0) {
+        const messagesToInsert = storyMessages.slice(0, 25).map((content, idx) => ({
+          gift_id: giftId,
+          content: content.slice(0, 160),
+          sort_order: idx,
+        }));
+        await supabase.from("gift_messages").insert(messagesToInsert);
+      }
+    } catch (e) {
+      console.warn("Could not sync gift_messages table:", e);
     }
 
     // 3. Handle Deleted Images

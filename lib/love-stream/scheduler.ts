@@ -150,9 +150,19 @@ export function generateLoveStreamSchedule({
   const events: LoveFieldEvent[] = [];
 
   // 1. Calculate Anniversary Days & Labels based on Preset Suggestion
-  const rel = (gift.relationship_type as RelationshipType) || "COUPLE";
-  const occ = (gift.occasion_type as OccasionType) || "ANNIVERSARY";
+  let rel: RelationshipType = "COUPLE";
+  let occ = (gift.occasion_type as OccasionType) || "ANNIVERSARY";
   const pro = (gift.pronoun_type as PronounType) || "HE_TO_SHE";
+
+  const rawRel = (gift.relationship_type || (gift.theme ? gift.theme.split(":")[0] : "") || "").trim().toUpperCase();
+  if (["FRIENDSHIP", "FAMILY", "COLLEAGUE", "CRUSH", "COUPLE"].includes(rawRel)) {
+    rel = rawRel as RelationshipType;
+  }
+  if (!gift.occasion_type && gift.theme) {
+    const occPart = gift.theme.split(":")[1]?.trim();
+    if (occPart) occ = occPart as OccasionType;
+  }
+
   const preset = getPresetSuggestion(rel, occ, pro);
 
   let anniversaryLabel =

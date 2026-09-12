@@ -86,6 +86,14 @@ export function LoveScene({
   const perf = useAdaptivePerformance();
   const [hasContextLost, setHasContextLost] = React.useState(false);
 
+  const relationship = React.useMemo(() => {
+    const raw = (gift?.relationship_type || (gift?.theme ? gift.theme.split(":")[0] : "") || "").trim().toUpperCase();
+    if (["FRIENDSHIP", "FAMILY", "COLLEAGUE", "CRUSH", "COUPLE"].includes(raw)) {
+      return raw as import("@/lib/presets/occasions").RelationshipType;
+    }
+    return "COUPLE" as import("@/lib/presets/occasions").RelationshipType;
+  }, [gift?.relationship_type, gift?.theme]);
+
   const handleContextLost = React.useCallback(() => {
     setHasContextLost(true);
   }, []);
@@ -128,7 +136,7 @@ export function LoveScene({
 
             {/* Thematic 3D Waterfall Stream (Hearts, Stars, Lotus, Diamonds) */}
             <HeartParticles
-              relationship={gift?.relationship_type as any}
+              relationship={relationship}
               count={perf.heartCount}
               isPaused={isPaused}
             />
