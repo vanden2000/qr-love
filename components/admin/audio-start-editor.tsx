@@ -32,7 +32,9 @@ export function AudioStartEditor({
   // Sync initial currentTime or value changes when not playing
   useEffect(() => {
     if (audioRef.current && !isPlaying && !isDragging) {
-      audioRef.current.currentTime = value;
+      try {
+        audioRef.current.currentTime = value;
+      } catch (e) {}
       setCurrentTime(value);
     }
   }, [value, isPlaying, isDragging]);
@@ -45,10 +47,14 @@ export function AudioStartEditor({
       setDuration(dur);
       setIsLoaded(true);
       if (value > 0) {
-        const clamped = Math.min(value, Math.max(0, dur - 1));
-        audioRef.current.currentTime = clamped;
+        const clamped = Math.min(value, Math.max(0, dur - 0.5));
+        try {
+          audioRef.current.currentTime = clamped;
+        } catch (e) {}
         setCurrentTime(clamped);
       }
+    } else if (audioRef.current.readyState >= 1) {
+      setIsLoaded(true);
     }
   };
 
@@ -61,18 +67,27 @@ export function AudioStartEditor({
   const handleEnded = () => {
     setIsPlaying(false);
     if (audioRef.current) {
-      audioRef.current.currentTime = value;
+      try {
+        audioRef.current.currentTime = value;
+      } catch (e) {}
       setCurrentTime(value);
     }
   };
 
-  // Play / Pause toggle
+  // Play / Pause toggle: Always starts from the selected start position (value) if paused
   const togglePlay = () => {
-    if (!audioRef.current || !isLoaded) return;
+    if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
+      if (value > 0 && Math.abs(audioRef.current.currentTime - value) > 0.5) {
+        const clamped = duration > 0 ? Math.min(value, Math.max(0, duration - 0.5)) : value;
+        try {
+          audioRef.current.currentTime = clamped;
+          setCurrentTime(clamped);
+        } catch (e) {}
+      }
       audioRef.current.play().then(() => {
         setIsPlaying(true);
       }).catch((err) => {
@@ -83,9 +98,11 @@ export function AudioStartEditor({
 
   // Play from start marker
   const handlePlayFromStart = () => {
-    if (!audioRef.current || !isLoaded) return;
-    const clamped = Math.min(value, Math.max(0, duration - 1));
-    audioRef.current.currentTime = clamped;
+    if (!audioRef.current) return;
+    const clamped = duration > 0 ? Math.min(value, Math.max(0, duration - 0.5)) : value;
+    try {
+      audioRef.current.currentTime = clamped;
+    } catch (e) {}
     setCurrentTime(clamped);
     audioRef.current.play().then(() => {
       setIsPlaying(true);
@@ -149,13 +166,15 @@ export function AudioStartEditor({
 
   // Helper to adjust start time by delta seconds
   const adjustSeconds = (delta: number) => {
-    if (!isLoaded || disabled) return;
-    const maxAllowed = Math.max(0, duration > 0 ? duration - 1 : 0);
+    if (disabled) return;
+    const maxAllowed = duration > 0 ? Math.max(0, duration - 1) : 3600;
     const newSec = Math.max(0, Math.min(maxAllowed, Number((value + delta).toFixed(1))));
     onChange(newSec);
     setCurrentTime(newSec);
     if (audioRef.current) {
-      audioRef.current.currentTime = newSec;
+      try {
+        audioRef.current.currentTime = newSec;
+      } catch (e) {}
     }
   };
 
@@ -164,26 +183,30 @@ export function AudioStartEditor({
   const currentRemainingSeconds = Math.floor(value % 60);
 
   const handleMinutesChange = (mStr: string) => {
-    if (!isLoaded || disabled) return;
+    if (disabled) return;
     const m = Math.max(0, parseInt(mStr, 10) || 0);
-    const maxAllowed = Math.max(0, duration > 0 ? duration - 1 : 0);
+    const maxAllowed = duration > 0 ? Math.max(0, duration - 1) : 3600;
     const newSec = Math.min(maxAllowed, m * 60 + currentRemainingSeconds);
     onChange(newSec);
     setCurrentTime(newSec);
     if (audioRef.current) {
-      audioRef.current.currentTime = newSec;
+      try {
+        audioRef.current.currentTime = newSec;
+      } catch (e) {}
     }
   };
 
   const handleSecondsChange = (sStr: string) => {
-    if (!isLoaded || disabled) return;
+    if (disabled) return;
     const s = Math.max(0, Math.min(59, parseInt(sStr, 10) || 0));
-    const maxAllowed = Math.max(0, duration > 0 ? duration - 1 : 0);
+    const maxAllowed = duration > 0 ? Math.max(0, duration - 1) : 3600;
     const newSec = Math.min(maxAllowed, currentMinutes * 60 + s);
     onChange(newSec);
     setCurrentTime(newSec);
     if (audioRef.current) {
-      audioRef.current.currentTime = newSec;
+      try {
+        audioRef.current.currentTime = newSec;
+      } catch (e) {}
     }
   };
 
@@ -199,6 +222,9 @@ export function AudioStartEditor({
         src={audioSrc}
         preload="auto"
         onLoadedMetadata={handleLoadedMetadata}
+        onLoadedData={handleLoadedMetadata}
+        onCanPlay={handleLoadedMetadata}
+        onDurationChange={handleLoadedMetadata}
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleEnded}
         className="hidden"

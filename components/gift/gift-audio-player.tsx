@@ -25,21 +25,28 @@ export function GiftAudioPlayer({
   const audioRef = useRef<HTMLAudioElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
-  const [hasInitializedStart, setHasInitializedStart] = useState(false);
+  const hasReachedStartRef = useRef(false);
   const [duration, setDuration] = useState<number>(0);
   const [currentTime, setCurrentTime] = useState<number>(startSeconds);
   const [isDragging, setIsDragging] = useState(false);
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
 
-  // 1. Initial Seek to startSeconds before first play
-  const applyStartSeconds = useCallback(() => {
+  // Reset reached flag if audioUrl or replayTrigger changes
+  useEffect(() => {
+    hasReachedStartRef.current = false;
+  }, [audioUrl, replayTrigger]);
+
+  // 1. Force Seek to startSeconds and verify whether browser accepted it
+  const forceSeekToStart = useCallback(() => {
     if (!audioRef.current || startSeconds <= 0) return;
-    const dur = audioRef.current.duration;
-    const targetTime = isFinite(dur) && dur > 0 ? Math.min(startSeconds, Math.max(0, dur - 0.5)) : startSeconds;
     try {
+      const dur = audioRef.current.duration;
+      const targetTime = isFinite(dur) && dur > 0 ? Math.min(startSeconds, Math.max(0, dur - 0.5)) : startSeconds;
       audioRef.current.currentTime = targetTime;
       setCurrentTime(targetTime);
-      setHasInitializedStart(true);
+      if (Math.abs(audioRef.current.currentTime - targetTime) < 1.5) {
+        hasReachedStartRef.current = true;
+      }
     } catch (err) {
       console.warn("Could not seek audio currentTime:", err);
     }
@@ -51,18 +58,40 @@ export function GiftAudioPlayer({
     if (isFinite(dur) && dur > 0) {
       setDuration(dur);
     }
-    if (startSeconds > 0) {
-      applyStartSeconds();
+    if (startSeconds > 0 && !hasReachedStartRef.current) {
+      forceSeekToStart();
+    }
+  };
+
+  const handleCanPlay = () => {
+    if (!audioRef.current) return;
+    if (startSeconds > 0 && !hasReachedStartRef.current) {
+      forceSeekToStart();
+    }
+  };
+
+  const handlePlaying = () => {
+    if (!audioRef.current) return;
+    if (startSeconds > 0 && !hasReachedStartRef.current) {
+      if (audioRef.current.currentTime < startSeconds - 1.0) {
+        forceSeekToStart();
+      } else {
+        hasReachedStartRef.current = true;
+      }
     }
   };
 
   const handleTimeUpdate = () => {
     if (!audioRef.current || isDragging) return;
     const curr = audioRef.current.currentTime;
-    // If browser auto-reset to 0 on play before metadata seek
-    if (startSeconds > 0 && !hasInitializedStart && curr < Math.min(startSeconds, 1.0)) {
-      applyStartSeconds();
-      return;
+    // If audio is actively playing from start (near 0s) while startSeconds was configured
+    if (startSeconds > 0 && !hasReachedStartRef.current && isPlaying) {
+      if (curr < startSeconds - 1.0) {
+        forceSeekToStart();
+        return;
+      } else {
+        hasReachedStartRef.current = true;
+      }
     }
     setCurrentTime(curr);
   };
@@ -76,8 +105,8 @@ export function GiftAudioPlayer({
 
     if (isPlaying && !isMuted) {
       // Seek to start position before calling play
-      if (startSeconds > 0 && (!hasInitializedStart || audioRef.current.currentTime < 0.5)) {
-        applyStartSeconds();
+      if (startSeconds > 0 && !hasReachedStartRef.current) {
+        forceSeekToStart();
       }
 
       try {
@@ -85,8 +114,8 @@ export function GiftAudioPlayer({
         if (playPromise !== undefined) {
           playPromise
             .then(() => {
-              if (startSeconds > 0 && audioRef.current && audioRef.current.currentTime < 0.5) {
-                applyStartSeconds();
+              if (startSeconds > 0 && audioRef.current && audioRef.current.currentTime < startSeconds - 1.0) {
+                forceSeekToStart();
               }
             })
             .catch((err) => {
@@ -99,7 +128,7 @@ export function GiftAudioPlayer({
     } else {
       audioRef.current.pause();
     }
-  }, [isPlaying, isMuted, audioUrl, startSeconds, hasInitializedStart, applyStartSeconds]);
+  }, [isPlaying, isMuted, audioUrl, startSeconds, forceSeekToStart]);
 
   // 3. Handle Replay -> Restarts strictly from configured startSeconds!
   useEffect(() => {
@@ -172,7 +201,10 @@ export function GiftAudioPlayer({
         src={audioUrl}
         loop
         preload="auto"
+        playsInline
         onLoadedMetadata={handleLoadedMetadata}
+        onCanPlay={handleCanPlay}
+        onPlaying={handlePlaying}
         onTimeUpdate={handleTimeUpdate}
         className="hidden"
       />
